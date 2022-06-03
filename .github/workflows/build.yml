@@ -1,0 +1,42 @@
+name: Upload builds to release
+
+on:
+  workflow_dispatch: 
+  release: 
+    types: [released]
+
+jobs:
+  build-appimage:
+    name: Build and upload amd64 AppImages
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: iffy/install-nim@v4.1.1
+      - name: Install x11 dev libraries
+        run: sudo apt install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev
+      - name: Build AppImage
+        run: |
+          nimble install -d -y
+          nake build
+      - name: Upload release binaries
+        uses: alexellis/upload-assets@0.2.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          asset_paths: '["*-*-*.AppImage", "*-*-*.AppImage.zsync"]'
+  build-win: 
+    name: Build and upload amd64 exe
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: iffy/install-nim@v4.1.1
+      - name: Build exe
+        run: nimble buildApp
+      - name: Upload release binaries
+        uses: alexellis/upload-assets@0.2.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          asset_paths: '["*.exe"]'

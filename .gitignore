@@ -1,0 +1,9 @@
+# ignore files with no extention:
+*
+!*/
+!*.*
+
+*.exe
+*.sublime-*
+trial.*
+AppDir
