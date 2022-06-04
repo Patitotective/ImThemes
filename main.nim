@@ -1,5 +1,6 @@
 import std/[strutils, os]
 
+import chroma
 import imstyle
 import niprefs
 import nimgl/[opengl, glfw]
@@ -10,6 +11,12 @@ when defined(release):
   from resourcesdata import resources
 
 const configPath = "config.niprefs"
+const sidebarViews = [
+  FA_PencilSquareO,
+  FA_Search, 
+  FA_Cog, 
+  FA_UserCircleO
+]
 
 proc getData(path: string): string = 
   when defined(release):
@@ -101,7 +108,7 @@ proc drawMainMenuBar(app: var App) =
 
     igEndMainMenuBar()
 
-  # See https://github.com/ocornut/imgui/issues/331#issuecomment-751372071
+  # See https:#github.com/ocornut/imgui/issues/331#issuecomment-751372071
   if openPrefs:
     igOpenPopup("Preferences")
   if openAbout:
@@ -111,17 +118,59 @@ proc drawMainMenuBar(app: var App) =
   app.drawAboutModal()
   app.drawPrefsModal()
 
+proc drawSidebar(app: var App) = 
+  const sideBarWidth = 50
+  igPushFont(app.bigFont)
+  igPushStyleColor(ImGuiCol.WindowBg, igGetColor(WindowBg).darken(0.02).igVec4())
+  igPushStyleVar(ImGuiStyleVar.WindowPadding, igVec2(0, 0))
+  
+  if igBeginViewportSideBar("##sidebar", igGetMainViewport(), ImGuiDir.Left, sideBarWidth, ImGuiWindowFlags.None):
+    igDummy(igVec2(0, 10))
+  
+    for e, view in sidebarViews:
+      var selected = app.currentView == e
+      if selected:
+        igPushDisabled()
+
+      centerCursorX(igCalcTextSize(cstring view).x + (igGetStyle().framePadding.x * 2), 0.5, sideBarWidth)
+      if igButton(cstring view): app.currentView = e
+
+      if selected:
+        igPopDisabled()
+
+    igEnd()
+
+  igPopStyleVar()
+  igPopStyleColor()
+  igPopFont()
+
 proc drawMain(app: var App) = # Draw the main window
   let viewport = igGetMainViewport()  
   
   app.drawMainMenuBar()
+  app.drawSidebar()
   # Work area is the entire viewport minus main menu bar, task bars, etc.
   igSetNextWindowPos(viewport.workPos)
   igSetNextWindowSize(viewport.workSize)
 
   if igBegin(cstring app.config["name"].getString(), flags = makeFlags(ImGuiWindowFlags.NoResize, NoDecoration, NoMove)):
-    igText(FA_Info & " Application average %.3f ms/frame (%.1f FPS)", 1000f / igGetIO().framerate, igGetIO().framerate)
-    if igButton("Click me"): echo "Do not do that again"
+    if app.currentView == 0:
+      echo "edit"
+    elif app.currentView == 1:
+      echo "browse"
+    # const height = 200
+    # if igBeginChild("##splitter1", igVec2(app.splitterSize1[0] + app.splitterSize1[1], height)):
+    #   discard igSplitter(true, 8, app.splitterSize1[0].addr, app.splitterSize1[1].addr, 8, 8, height)
+    #   if igBeginChild("##1", igVec2(app.splitterSize1[0], height), true): igText("Splitter zone 1")
+    #   igEndChild(); igSameLine()
+    #   if igBeginChild("##splitter2", igVec2(app.splitterSize2[0] + app.splitterSize2[1], height)):
+    #     discard igSplitter(true, 8, app.splitterSize2[0].addr, app.splitterSize2[1].addr, 8, 8, height)
+    #     if igBeginChild("##3", igVec2(app.splitterSize2[0], height), true): igText("Splitter zone 2")
+    #     igEndChild(); igSameLine()
+    #     if igBeginChild("##4", igVec2(app.splitterSize2[1], height), true): igText("Splitter zone 3")
+    #     igEndChild()
+    #   igEndChild()
+    # igEndChild()
 
   igEnd()
 
@@ -248,6 +297,9 @@ proc main() =
   var ranges = [FA_Min.uint16,  FA_Max.uint16]
 
   io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat(), config.addr, ranges[0].addr)
+
+  app.bigFont = io.fonts.igAddFontFromMemoryTTF(app.config["fontPath"].getData(), app.config["fontSize"].getFloat()+10)
+  io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat()+10, config.addr, ranges[0].addr)
 
   # Main loop
   while not app.win.windowShouldClose:

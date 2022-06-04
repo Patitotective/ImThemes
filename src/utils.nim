@@ -24,10 +24,14 @@ type
 
   App* = ref object
     win*: GLFWWindow
-    font*: ptr ImFont
+    font*, bigFont*: ptr ImFont
     prefs*: Prefs
     cache*: PObjectType # Settings cache
     config*: PObjectType # Prefs table
+
+    currentView*: int
+    # splitterSize1*: (float32, float32)
+    # splitterSize2*: (float32, float32)
 
 proc `+`*(vec1, vec2: ImVec2): ImVec2 = 
   ImVec2(x: vec1.x + vec2.x, y: vec1.y + vec2.y)
@@ -90,6 +94,19 @@ proc igCalcTextSize*(text: cstring, text_end: cstring = nil, hide_text_after_dou
 proc igColorConvertU32ToFloat4*(color: uint32): ImVec4 = 
   igColorConvertU32ToFloat4NonUDT(result.addr, color)
 
+proc igGetColor*(color: ImGuiCol): Color = 
+  let vec = igColorConvertU32ToFloat4(igGetColorU32(color))
+  Color(r: vec.x, g: vec.y, b: vec.z, a: vec.w)
+
+proc igGetCursorPos*(): ImVec2 = 
+  igGetCursorPosNonUDT(result.addr)
+
+proc igGetItemRectMin*(): ImVec2 = 
+  igGetItemRectMinNonUDT(result.addr)
+
+proc igCalcItemSize*(size: ImVec2, default_w: float32, default_h: float32): ImVec2 = 
+  igCalcItemSizeNonUDT(result.addr, size, default_w, default_h)
+
 proc getCenter*(self: ptr ImGuiViewport): ImVec2 = 
   getCenterNonUDT(result.addr, self)
 
@@ -130,6 +147,15 @@ proc igPushDisabled*() =
 proc igPopDisabled*() = 
   igPopItemFlag()
   igPopStyleVar()
+
+proc igSplitter(split_vertically: bool, thickness: float32, size1, size2: ptr float32, min_size1, min_size2: float32, splitter_long_axis_size = -1f): bool = 
+  let context = igGetCurrentContext()
+  let window = context.currentWindow
+  let id = window.getID("##Splitter")
+  var bb: ImRect
+  bb.min = window.dc.cursorPos + (if split_vertically: igVec2(size1[], 0f) else: igVec2(0f, size1[]))
+  bb.max = bb.min + igCalcItemSize(if split_vertically: igVec2(thickness, splitter_long_axis_size) else: igVec2(splitter_long_axis_size, thickness), 0f, 0f)
+  result = igSplitterBehavior(bb, id, if split_vertically: ImGuiAxis.X else: ImGuiAxis.Y, size1, size2, min_size1, min_size2, 0f)
 
 # To be able to print large holey enums
 macro enumFullRange*(a: typed): untyped =

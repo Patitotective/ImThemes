@@ -2,7 +2,7 @@
 alpha=1
 
 windowPadding=[10, 10]
-windowRounding=4
+windowRounding=0
 windowBorderSize=0
 # windowMinSize=[32, 32]
 windowTitleAlign=[0.5, 0.5]
