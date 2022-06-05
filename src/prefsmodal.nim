@@ -153,9 +153,7 @@ proc drawSetting(app: var App, name: string, data: PObjectType, alignCount: Natu
       else:
         app.drawSettings(data["content"], alignCount, name)
 
-  if "help" in data:
-    igSameLine()
-    igHelpMarker(data["help"].getString())
+  if "help" in data: igHelpMarker(data["help"].getString())
 
 proc drawSettings(app: var App, settings: PrefsNode, alignCount: Natural, parent = "") = 
   assert settings.kind == PObject
@@ -165,10 +163,10 @@ proc drawSettings(app: var App, settings: PrefsNode, alignCount: Natural, parent
       if parent.len > 0:
         if parent notin app.cache: app.cache[parent] = newPObject()
         if name notin app.cache[parent]:
-          app.cache = app.cache.changeNested(parent, name, app.prefs[parent, name])
+          app.cache = app.cache.changeNested(parent, name, app.prefsCache[parent][name])
       else:
         if name notin app.cache:
-          app.cache[name] = app.prefs[name]
+          app.cache[name] = app.prefsCache[name]
 
     app.drawSetting(name, data.getObject(), alignCount, parent)
 
@@ -192,7 +190,7 @@ proc drawPrefsModal*(app: var App) =
 
     if igButton("Save"):
       for name, val in app.cache:
-        app.prefs[name] = val
+        app.prefsCache[name] = val
       
       app.updatePrefs()
       igCloseCurrentPopup()
@@ -219,9 +217,8 @@ proc drawPrefsModal*(app: var App) =
 
       if igButton("Yes"):
         close = true
-        app.prefs.overwrite()
-        app.initConfig(app.config["settings"])
-        app.cache = default PObjectType
+        app.initConfig(app.config["settings"], overwrite = true)
+        app.cache.reset()
         app.updatePrefs()
 
         igCloseCurrentPopup()

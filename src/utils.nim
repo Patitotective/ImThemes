@@ -28,8 +28,29 @@ type
     prefs*: Prefs
     cache*: PObjectType # Settings cache
     config*: PObjectType # Prefs table
+    prefsCache*: PObjectType
 
-    currentView*: int
+    # Views
+    currentView*, hoveredView*: int
+    # Edit view
+    currentTheme*: int
+    currentExportTab*: int
+    themeName*, themeAuthor*: string # Create theme popup
+    currentThemeTemplate*: int # Create theme popup
+    editing*, saved*, copied*: bool # Editing theme, saved theme, copied export text
+    prevAvail*: ImVec2 # Previous avail content
+    splitterSize1*, splitterSize2*: tuple[a, b: float32]
+    themeStyle*: ImGuiStyle # Current theme style
+    prevThemeStyle*: ImGuiStyle # Current theme style before saving
+    # Preview window
+    previewSlider*: float32
+    previewBuffer*: string
+    previewValues*: array[90, float32]
+    previewValuesOffset*: int32
+    previewRefreshTime*: float32
+    previewPhase*: float32
+    # Editor
+    sizesBuffer*, colorsBuffer*: string
     # splitterSize1*: (float32, float32)
     # splitterSize2*: (float32, float32)
 
@@ -88,6 +109,9 @@ proc igGetContentRegionAvail*(): ImVec2 =
 proc igGetWindowPos*(): ImVec2 = 
   igGetWindowPosNonUDT(result.addr)
 
+proc igGetWindowSize*(): ImVec2 = 
+  igGetWindowSizeNonUDT(result.addr)
+
 proc igCalcTextSize*(text: cstring, text_end: cstring = nil, hide_text_after_double_hash: bool = false, wrap_width: float32 = -1.0'f32): ImVec2 = 
   igCalcTextSizeNonUDT(result.addr, text, text_end, hide_text_after_double_hash, wrap_width)
 
@@ -116,7 +140,8 @@ proc centerCursorX*(width: float32, align: float = 0.5f, availWidth: float32 = i
   if off > 0:
     igSetCursorPosX(igGetCursorPosX() + off)
 
-proc igHelpMarker*(text: string) = 
+proc igHelpMarker*(text: string, sameLineBefore = true) =
+  if sameLineBefore: igSameLine() 
   igTextDisabled("(?)")
   if igIsItemHovered():
     igBeginTooltip()
@@ -140,15 +165,7 @@ proc igAddFontFromMemoryTTF*(self: ptr ImFontAtlas, data: string, size_pixels: f
   igFontStr[0].unsafeAddr.copyMem(data[0].unsafeAddr, data.len)
   result = self.addFontFromMemoryTTF(igFontStr, data.len.int32, sizePixels, font_cfg, glyph_ranges)
 
-proc igPushDisabled*() = 
-  igPushItemFlag(ImGuiItemFlags.Disabled, true)
-  igPushStyleVar(ImGuiStyleVar.Alpha, igGetStyle().alpha * 0.6)
-
-proc igPopDisabled*() = 
-  igPopItemFlag()
-  igPopStyleVar()
-
-proc igSplitter(split_vertically: bool, thickness: float32, size1, size2: ptr float32, min_size1, min_size2: float32, splitter_long_axis_size = -1f): bool = 
+proc igSplitter*(split_vertically: bool, thickness: float32, size1, size2: ptr float32, min_size1, min_size2: float32, splitter_long_axis_size = -1f): bool {.discardable.} = 
   let context = igGetCurrentContext()
   let window = context.currentWindow
   let id = window.getID("##Splitter")
@@ -284,18 +301,20 @@ proc removeInside*(text: string, open, close: char): tuple[text: string, inside:
     if inside:
       result.inside.add i
 
-proc initconfig*(app: var App, settings: PrefsNode, parent: string = "") = 
+proc initconfig*(app: var App, settings: PrefsNode, parent = "", overwrite = false) = 
   # Add the preferences with the values defined in config["settings"]
   for name, data in settings: 
     let settingType = parseEnum[SettingTypes](data["type"])
     if settingType == Section:
       app.initConfig(data["content"], parent = name)  
     elif parent.len > 0:
-      if not app.prefs.hasPath(parent, name):
-        app.prefs[parent, name] = data["default"]
+      if parent notin app.prefsCache or overwrite:
+        app.prefsCache[parent] = newPObject()
+      elif name notin app.prefsCache[parent] or overwrite:
+        app.prefsCache[parent][name] = data["default"]
     else:
-      if name notin app.prefs:
-        app.prefs[name] = data["default"]
+      if name notin app.prefsCache or overwrite:
+        app.prefsCache[name] = data["default"]
 
 proc newString*(lenght: int, default: string): string = 
   result = newString(lenght)
@@ -316,3 +335,6 @@ proc pushString*(str: var string, val: string) =
 proc updatePrefs*(app: var App) = 
   # Update the values depending on the preferences here
   echo "Updating preferences..."
+
+proc color*(vec: ImVec4): Color = 
+  color(vec.x, vec.y, vec.z, vec.w)

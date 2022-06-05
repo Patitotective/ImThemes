@@ -1,10 +1,11 @@
 # Style
 alpha=1
+disabledAlpha=0.4
 
 windowPadding=[10, 10]
 windowRounding=0
 windowBorderSize=0
-# windowMinSize=[32, 32]
+windowMinSize=[150, 150]
 windowTitleAlign=[0.5, 0.5]
 windowMenuButtonPosition="left"
 

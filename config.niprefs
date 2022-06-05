@@ -1,5 +1,5 @@
 # App
-name="ImExample"
+name="ImThemes"
 comment="ImExample is a simple Dear ImGui application example"
 version="0.3.0"
 website="https://github.com/Patitotective/ImTemplate"
@@ -7,7 +7,7 @@ authors=["Patitotective <https://github.com/Patitotective>", "Cristobal <mailto:
 categories=["Utility"]
 
 # AppImage
-ghRepo="Patitotective/ImTemplate"
+ghRepo="Patitotective/ImThemes"
 
 stylePath="assets/style.niprefs"
 iconPath="assets/icon.png"
@@ -17,7 +17,7 @@ fontPath="assets/ProggyVector Regular.ttf" # Other options are Roboto-Regular.tt
 fontSize=16f
 
 # Window
-minSize=[200, 200] # Width, height
+minSize=[400, 400] # Width, height
 
 # Settings for the preferences window
 settings=>

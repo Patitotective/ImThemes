@@ -4,7 +4,7 @@ version          = "0.3.0"
 author           = "Patitotective"
 description      = "A new awesome Dear ImGui application"
 license          = "MIT"
-namedBin["main"] = "ImExample"
+namedBin["main"] = "ImThemes"
 
 # Dependencies
 
@@ -14,7 +14,7 @@ requires "nimgl >= 1.3.2"
 requires "chroma >= 0.2.4"
 requires "niprefs >= 0.2.4"
 requires "stb_image >= 2.5"
-requires "https://github.com/Patitotective/ImStyle >= 0.1.0"
+requires "https://github.com/Patitotective/ImStyle >= 0.1.4"
 
 import std/[strformat, os]
 
