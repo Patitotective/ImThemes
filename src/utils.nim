@@ -1,4 +1,4 @@
-import std/[strutils, strformat, typetraits, enumutils, macros, times, os]
+import std/[strutils, strformat, typetraits, enumutils, macros, times, json, os]
 import chroma
 import niprefs
 import stb_image/read as stbi
@@ -32,6 +32,7 @@ type
 
     # Views
     currentView*, hoveredView*: int
+    
     # Edit view
     currentTheme*: int
     currentExportTab*: int
@@ -39,7 +40,7 @@ type
     currentThemeTemplate*: int # Create theme popup
     editing*, saved*, copied*: bool # Editing theme, saved theme, copied export text
     prevAvail*: ImVec2 # Previous avail content
-    splitterSize1*, splitterSize2*: tuple[a, b: float32]
+    editSplitterSize1*, editSplitterSize2*: tuple[a, b: float32]
     themeStyle*: ImGuiStyle # Current theme style
     prevThemeStyle*: ImGuiStyle # Current theme style before saving
     # Preview window
@@ -51,8 +52,9 @@ type
     previewPhase*: float32
     # Editor
     sizesBuffer*, colorsBuffer*: string
-    # splitterSize1*: (float32, float32)
-    # splitterSize2*: (float32, float32)
+
+    # Browse view
+    browseSplitterSize*: tuple[a, b: float32]
 
 proc `+`*(vec1, vec2: ImVec2): ImVec2 = 
   ImVec2(x: vec1.x + vec2.x, y: vec1.y + vec2.y)
@@ -338,3 +340,142 @@ proc updatePrefs*(app: var App) =
 
 proc color*(vec: ImVec4): Color = 
   color(vec.x, vec.y, vec.z, vec.w)
+
+proc toVec2(node: seq[JsonNode]): ImVec2 = 
+  ImVec2(x: node[0].getFloat(), y: node[1].getFloat())
+
+proc toVec4(node: seq[JsonNode]): ImVec4 = 
+  ImVec4(x: node[0].getFloat(), y: node[1].getFloat(), z: node[2].getFloat(), w: node[3].getFloat())
+
+proc toArray(vec: ImVec2): array[2, float32] = 
+  [vec.x, vec.y]
+
+proc toArray(vec: ImVec4): array[4, float32] = 
+  [vec.x, vec.y, vec.z, vec.w]
+
+proc toJson*(style: ImGuiStyle): JsonNode = 
+  %* {
+    "alpha": style.alpha, 
+    "disabledAlpha": style.disabledAlpha, 
+    "windowPadding": style.windowPadding.toArray(), 
+    "windowRounding": style.windowRounding, 
+    "windowBorderSize": style.windowBorderSize, 
+    "windowMinSize": style.windowMinSize.toArray(), 
+    "windowTitleAlign": style.windowTitleAlign.toArray(), 
+    "windowMenuButtonPosition": $style.windowMenuButtonPosition, 
+    "childRounding": style.childRounding, 
+    "childBorderSize": style.childBorderSize, 
+    "popupRounding": style.popupRounding, 
+    "popupBorderSize": style.popupBorderSize, 
+    "framePadding": style.framePadding.toArray(), 
+    "frameRounding": style.frameRounding, 
+    "frameBorderSize": style.frameBorderSize, 
+    "itemSpacing": style.itemSpacing.toArray(), 
+    "itemInnerSpacing": style.itemInnerSpacing.toArray(), 
+    "cellPadding": style.cellPadding.toArray(), 
+    "indentSpacing": style.indentSpacing, 
+    "columnsMinSpacing": style.columnsMinSpacing, 
+    "scrollbarSize": style.scrollbarSize, 
+    "scrollbarRounding": style.scrollbarRounding, 
+    "grabMinSize": style.grabMinSize, 
+    "grabRounding": style.grabRounding, 
+    "tabRounding": style.tabRounding, 
+    "tabBorderSize": style.tabBorderSize, 
+    "tabMinWidthForCloseButton": style.tabMinWidthForCloseButton, 
+    "colorButtonPosition": $style.colorButtonPosition, 
+    "buttonTextAlign": style.buttonTextAlign.toArray(), 
+    "selectableTextAlign": style.selectableTextAlign.toArray(), 
+    "colors": {
+      "Text": style.colors[ord ImGuiCol.Text].toArray(), 
+      "TextDisabled": style.colors[ord ImGuiCol.TextDisabled].toArray(), 
+      "WindowBg": style.colors[ord ImGuiCol.WindowBg].toArray(), 
+      "ChildBg": style.colors[ord ImGuiCol.ChildBg].toArray(), 
+      "PopupBg": style.colors[ord ImGuiCol.PopupBg].toArray(), 
+      "Border": style.colors[ord ImGuiCol.Border].toArray(), 
+      "BorderShadow": style.colors[ord ImGuiCol.BorderShadow].toArray(), 
+      "FrameBg": style.colors[ord ImGuiCol.FrameBg].toArray(), 
+      "FrameBgHovered": style.colors[ord ImGuiCol.FrameBgHovered].toArray(), 
+      "FrameBgActive": style.colors[ord ImGuiCol.FrameBgActive].toArray(), 
+      "TitleBg": style.colors[ord ImGuiCol.TitleBg].toArray(), 
+      "TitleBgActive": style.colors[ord ImGuiCol.TitleBgActive].toArray(), 
+      "TitleBgCollapsed": style.colors[ord ImGuiCol.TitleBgCollapsed].toArray(),
+      "MenuBarBg": style.colors[ord ImGuiCol.MenuBarBg].toArray(), 
+      "ScrollbarBg": style.colors[ord ImGuiCol.ScrollbarBg].toArray(), 
+      "ScrollbarGrab": style.colors[ord ImGuiCol.ScrollbarGrab].toArray(), 
+      "ScrollbarGrabHovered": style.colors[ord ImGuiCol.ScrollbarGrabHovered].toArray(), 
+      "ScrollbarGrabActive": style.colors[ord ImGuiCol.ScrollbarGrabActive].toArray(), 
+      "CheckMark": style.colors[ord ImGuiCol.CheckMark].toArray(), 
+      "SliderGrab": style.colors[ord ImGuiCol.SliderGrab].toArray(), 
+      "SliderGrabActive": style.colors[ord ImGuiCol.SliderGrabActive].toArray(), 
+      "Button": style.colors[ord ImGuiCol.Button].toArray(), 
+      "ButtonHovered": style.colors[ord ImGuiCol.ButtonHovered].toArray(), 
+      "ButtonActive": style.colors[ord ImGuiCol.ButtonActive].toArray(), 
+      "Header": style.colors[ord ImGuiCol.Header].toArray(), 
+      "HeaderHovered": style.colors[ord ImGuiCol.HeaderHovered].toArray(), 
+      "HeaderActive": style.colors[ord ImGuiCol.HeaderActive].toArray(), 
+      "Separator": style.colors[ord ImGuiCol.Separator].toArray(), 
+      "SeparatorHovered": style.colors[ord ImGuiCol.SeparatorHovered].toArray(), 
+      "SeparatorActive": style.colors[ord ImGuiCol.SeparatorActive].toArray(), 
+      "ResizeGrip": style.colors[ord ImGuiCol.ResizeGrip].toArray(), 
+      "ResizeGripHovered": style.colors[ord ImGuiCol.ResizeGripHovered].toArray(), 
+      "ResizeGripActive": style.colors[ord ImGuiCol.ResizeGripActive].toArray(), 
+      "Tab": style.colors[ord ImGuiCol.Tab].toArray(), 
+      "TabHovered": style.colors[ord ImGuiCol.TabHovered].toArray(), 
+      "TabActive": style.colors[ord ImGuiCol.TabActive].toArray(), 
+      "TabUnfocused": style.colors[ord ImGuiCol.TabUnfocused].toArray(), 
+      "TabUnfocusedActive": style.colors[ord ImGuiCol.TabUnfocusedActive].toArray(), 
+      "PlotLines": style.colors[ord ImGuiCol.PlotLines].toArray(), 
+      "PlotLinesHovered": style.colors[ord ImGuiCol.PlotLinesHovered].toArray(), 
+      "PlotHistogram": style.colors[ord ImGuiCol.PlotHistogram].toArray(), 
+      "PlotHistogramHovered": style.colors[ord ImGuiCol.PlotHistogramHovered].toArray(), 
+      "TableHeaderBg": style.colors[ord ImGuiCol.TableHeaderBg].toArray(), 
+      "TableBorderStrong": style.colors[ord ImGuiCol.TableBorderStrong].toArray(), 
+      "TableBorderLight": style.colors[ord ImGuiCol.TableBorderLight].toArray(), 
+      "TableRowBg": style.colors[ord ImGuiCol.TableRowBg].toArray(), 
+      "TableRowBgAlt": style.colors[ord ImGuiCol.TableRowBgAlt].toArray(), 
+      "TextSelectedBg": style.colors[ord ImGuiCol.TextSelectedBg].toArray(), 
+      "DragDropTarget": style.colors[ord ImGuiCol.DragDropTarget].toArray(), 
+      "NavHighlight": style.colors[ord ImGuiCol.NavHighlight].toArray(), 
+      "NavWindowingHighlight": style.colors[ord ImGuiCol.NavWindowingHighlight].toArray(), 
+      "NavWindowingDimBg": style.colors[ord ImGuiCol.NavWindowingDimBg].toArray(), 
+      "ModalWindowDimBg": style.colors[ord ImGuiCol.ModalWindowDimBg].toArray(), 
+    }
+  }
+
+proc colorsFromJson(node: JsonNode): array[53, ImVec4] = 
+  for col in ImGuiCol:
+    if $col in node:
+      result[ord col] = node[$col].getElems().toVec4()
+
+proc styleFromJson*(node: JsonNode): ImGuiStyle = 
+  if "alpha" in node: result.alpha = node["alpha"].getFloat()
+  if "disabledAlpha" in node: result.disabledAlpha = node["disabledAlpha"].getFloat()
+  if "windowPadding" in node: result.windowPadding = node["windowPadding"].getElems().toVec2()
+  if "windowRounding" in node: result.windowRounding = node["windowRounding"].getFloat()
+  if "windowBorderSize" in node: result.windowBorderSize = node["windowBorderSize"].getFloat()
+  if "windowMinSize" in node: result.windowMinSize = node["windowMinSize"].getElems().toVec2()
+  if "windowTitleAlign" in node: result.windowTitleAlign = node["windowTitleAlign"].getElems().toVec2()
+  if "windowMenuButtonPosition" in node: result.windowMenuButtonPosition = parseEnum[ImGuiDir](node["windowMenuButtonPosition"].getStr().capitalizeAscii())
+  if "childRounding" in node: result.childRounding = node["childRounding"].getFloat()
+  if "childBorderSize" in node: result.childBorderSize = node["childBorderSize"].getFloat()
+  if "popupRounding" in node: result.popupRounding = node["popupRounding"].getFloat()
+  if "popupBorderSize" in node: result.popupBorderSize = node["popupBorderSize"].getFloat()
+  if "framePadding" in node: result.framePadding = node["framePadding"].getElems().toVec2()
+  if "frameRounding" in node: result.frameRounding = node["frameRounding"].getFloat()
+  if "frameBorderSize" in node: result.frameBorderSize = node["frameBorderSize"].getFloat()
+  if "itemSpacing" in node: result.itemSpacing = node["itemSpacing"].getElems().toVec2()
+  if "itemInnerSpacing" in node: result.itemInnerSpacing = node["itemInnerSpacing"].getElems().toVec2()
+  if "cellPadding" in node: result.cellPadding = node["cellPadding"].getElems().toVec2()
+  if "indentSpacing" in node: result.indentSpacing = node["indentSpacing"].getFloat()
+  if "columnsMinSpacing" in node: result.columnsMinSpacing = node["columnsMinSpacing"].getFloat()
+  if "scrollbarSize" in node: result.scrollbarSize = node["scrollbarSize"].getFloat()
+  if "scrollbarRounding" in node: result.scrollbarRounding = node["scrollbarRounding"].getFloat()
+  if "grabMinSize" in node: result.grabMinSize = node["grabMinSize"].getFloat()
+  if "grabRounding" in node: result.grabRounding = node["grabRounding"].getFloat()
+  if "tabRounding" in node: result.tabRounding = node["tabRounding"].getFloat()
+  if "tabBorderSize" in node: result.tabBorderSize = node["tabBorderSize"].getFloat()
+  if "tabMinWidthForCloseButton" in node: result.tabMinWidthForCloseButton = node["tabMinWidthForCloseButton"].getFloat()
+  if "colorButtonPosition" in node: result.colorButtonPosition = parseEnum[ImGuiDir](node["colorButtonPosition"].getStr().capitalizeAscii())
+  if "buttonTextAlign" in node: result.buttonTextAlign = node["buttonTextAlign"].getElems().toVec2()
+  if "selectableTextAlign" in node: result.selectableTextAlign = node["selectableTextAlign"].getElems().toVec2()
+  if "colors" in node: result.colors = node["colors"].colorsFromJson()
