@@ -19,10 +19,10 @@ framePadding=[5, 3]
 frameRounding=3
 frameBorderSize=0
 
-itemSpacing=[7, 4]
+itemSpacing=[6, 6]
 itemInnerSpacing=[3, 2]
 
-cellPadding=[0, 0]
+cellPadding=[3, 3]
 
 touchExtraPadding=[0, 0]
 

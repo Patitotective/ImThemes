@@ -1,3 +1,5 @@
+switch("threads", "on")
+switch("define", "ssl")
 switch("backend", "cpp")
 switch("warning", "HoleEnumConv:off")
 when defined(Windows):

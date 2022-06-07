@@ -439,6 +439,8 @@ proc drawPreviewWin(app: var App) =
         igSliderFloat("Slider", app.previewSlider.addr, 0, 50)
         igInputTextWithHint("##input", "Type here...", cstring app.previewBuffer, 64)
 
+        igColorEdit4("Color Edit", app.previewCol)
+
         if igBeginChild("Child", igVec2(0, 150), true):
           for i in 1..100:
             igSelectable(cstring "I'm beef #" & $i)
@@ -446,6 +448,7 @@ proc drawPreviewWin(app: var App) =
           igEndChild()
 
         if igCollapsingHeader("Collapse me", DefaultOpen):
+          igIndent()
           igButton("Popup")
           if igIsItemClicked():
             igOpenPopup("popup")
@@ -461,6 +464,7 @@ proc drawPreviewWin(app: var App) =
           if igButton("Popup modal"):
             igOpenPopup("modal")
 
+          igUnindent()
     
         if igBeginPopup("popup"):
           for i in ["We", "Are", "What", "We", "Think"]:
@@ -697,7 +701,7 @@ proc drawEditView*(app: var App) =
       app.saved = app.themeStyle == app.prevThemeStyle
         
       if igBeginChild("##editViewEditor", igVec2(app.editSplitterSize2.b, avail.y), flags = makeFlags(AlwaysUseWindowPadding, HorizontalScrollbar)):
-        app.drawEditor(app.themeStyle, app.isThemeReadOnly())
+        app.drawEditor(app.themeStyle)
       igEndChild()
 
   igEndChild()

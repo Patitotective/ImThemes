@@ -1,4 +1,4 @@
-import std/[strutils, strformat, typetraits, enumutils, macros, times, json, os]
+import std/[strutils, strformat, typetraits, enumutils, macros, math, times, json, os]
 import chroma
 import niprefs
 import stb_image/read as stbi
@@ -46,15 +46,20 @@ type
     # Preview window
     previewSlider*: float32
     previewBuffer*: string
-    previewValues*: array[90, float32]
     previewValuesOffset*: int32
     previewRefreshTime*: float32
     previewPhase*: float32
+    previewValues*: array[90, float32]
+    previewCol*: array[4, float32]
     # Editor
     sizesBuffer*, colorsBuffer*: string
 
     # Browse view
+    feed*: seq[JsonNode]
     browseSplitterSize*: tuple[a, b: float32]
+
+const styleProps* = ["alpha", "disabledAlpha", "windowPadding", "windowRounding", "windowBorderSize", "windowMinSize", "windowTitleAlign", "windowMenuButtonPosition", "childRounding", "childBorderSize", "popupRounding", "popupBorderSize", "framePadding", "frameRounding", "frameBorderSize", "itemSpacing", "itemInnerSpacing", "cellPadding", "indentSpacing", "columnsMinSpacing", "scrollbarSize", "scrollbarRounding", "grabMinSize", "grabRounding", "tabRounding", "tabBorderSize", "tabMinWidthForCloseButton", "colorButtonPosition", "buttonTextAlign", "selectableTextAlign"]
+const stylePropsHelp* = ["Global alpha applies to everything in Dear ImGui.", "Additional alpha multiplier applied by BeginDisabled(). Multiply over current value of Alpha.", "Padding within a window", "Radius of window corners rounding. Set to 0.0f to have rectangular windows. Large values tend to lead to variety of artifacts and are not recommended.", "Thickness of border around windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Minimum window size", "Alignment for title bar text", "Position of the collapsing/docking button in the title bar (left/right). Defaults to ImGuiDir_Left.", "Radius of child window corners rounding. Set to 0.0f to have rectangular child windows", "Thickness of border around child windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Radius of popup window corners rounding. Set to 0.0f to have rectangular child windows", "Thickness of border around popup or tooltip windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Padding within a framed rectangle (used by most widgets)", "Radius of frame corners rounding. Set to 0.0f to have rectangular frames (used by most widgets).", "Thickness of border around frames. Generally set to 0.0f or 1.0f. Other values not well tested.", "Horizontal and vertical spacing between widgets/lines", "Horizontal and vertical spacing between within elements of a composed widget (e.g. a slider and its label)", "Padding within a table cell", "Horizontal spacing when e.g. entering a tree node. Generally == (FontSize + FramePadding.x*2).", "Minimum horizontal spacing between two columns. Preferably > (FramePadding.x + 1).", "Width of the vertical scrollbar, Height of the horizontal scrollbar", "Radius of grab corners rounding for scrollbar", "Minimum width/height of a grab box for slider/scrollbar", "Radius of grabs corners rounding. Set to 0.0f to have rectangular slider grabs.", "Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs.", "Thickness of border around tabs.", "Minimum width for close button to appears on an unselected tab when hovered. Set to 0.0f to always show when hovering, set to FLT_MAX to never show close button unless selected.", "Side of the color button in the ColorEdit4 widget (left/right). Defaults to ImGuiDir_Right.", "Alignment of button text when button is larger than text.", "Alignment of selectable text. Defaults to (0.0f, 0.0f) (top-left aligned). It's generally important to keep this left-aligned if you want to lay multiple items on a same line."]
 
 proc `+`*(vec1, vec2: ImVec2): ImVec2 = 
   ImVec2(x: vec1.x + vec2.x, y: vec1.y + vec2.y)
@@ -136,11 +141,21 @@ proc igCalcItemSize*(size: ImVec2, default_w: float32, default_h: float32): ImVe
 proc getCenter*(self: ptr ImGuiViewport): ImVec2 = 
   getCenterNonUDT(result.addr, self)
 
-proc centerCursorX*(width: float32, align: float = 0.5f, availWidth: float32 = igGetContentRegionAvail().x) = 
-  let off = (availWidth - width) * align
+proc igCenterCursorX*(width: float32, align: float = 0.5f, avail = igGetContentRegionAvail().x) = 
+  let off = (avail - width) * align
   
   if off > 0:
     igSetCursorPosX(igGetCursorPosX() + off)
+
+proc igCenterCursorY*(height: float32, align: float = 0.5f, avail = igGetContentRegionAvail().y) = 
+  let off = (avail - height) * align
+  
+  if off > 0:
+    igSetCursorPosY(igGetCursorPosY() + off)
+
+proc igCenterCursor*(size: ImVec2, alignX: float = 0.5f, alignY: float = 0.5f, avail = igGetContentRegionAvail()) = 
+  igCenterCursorX(size.x, alignX, avail.x)
+  igCenterCursorY(size.y, alignY, avail.y)
 
 proc igHelpMarker*(text: string, sameLineBefore = true) =
   if sameLineBefore: igSameLine() 
@@ -175,6 +190,43 @@ proc igSplitter*(split_vertically: bool, thickness: float32, size1, size2: ptr f
   bb.min = window.dc.cursorPos + (if split_vertically: igVec2(size1[], 0f) else: igVec2(0f, size1[]))
   bb.max = bb.min + igCalcItemSize(if split_vertically: igVec2(thickness, splitter_long_axis_size) else: igVec2(splitter_long_axis_size, thickness), 0f, 0f)
   result = igSplitterBehavior(bb, id, if split_vertically: ImGuiAxis.X else: ImGuiAxis.Y, size1, size2, min_size1, min_size2, 0f)
+
+proc igSpinner*(label: string, radius: float, thickness: float32, color: uint32) = 
+  let window = igGetCurrentWindow()
+  if window.skipItems:
+    return
+  
+  let
+    context = igGetCurrentContext()
+    style = context.style
+    id = igGetID(label)
+  
+    pos = window.dc.cursorPos
+    size = ImVec2(x: radius * 2, y: (radius + style.framePadding.y) * 2)
+
+    bb = ImRect(min: pos, max: ImVec2(x: pos.x + size.x, y: pos.y + size.y));
+  igItemSize(bb, style.framePadding.y)
+
+  if not igItemAdd(bb, id):
+      return
+  
+  window.drawList.pathClear()
+  
+  let
+    numSegments = 30
+    start = abs(sin(context.time * 1.8f) * (numSegments - 5).float)
+  
+  let
+    aMin = PI * 2f * start / numSegments.float
+    aMax = PI * 2f * ((numSegments - 3) / numSegments).float
+
+    centre = ImVec2(x: pos.x + radius, y: pos.y + radius + style.framePadding.y)
+
+  for i in 0..<numSegments:
+    let a = aMin + i / numSegments * (aMax - aMin)
+    window.drawList.pathLineTo(ImVec2(x: centre.x + cos(a + context.time * 8) * radius, y: centre.y + sin(a + context.time * 8) * radius))
+
+  window.drawList.pathStroke(color, thickness = thickness)
 
 # To be able to print large holey enums
 macro enumFullRange*(a: typed): untyped =
@@ -303,7 +355,7 @@ proc removeInside*(text: string, open, close: char): tuple[text: string, inside:
     if inside:
       result.inside.add i
 
-proc initconfig*(app: var App, settings: PrefsNode, parent = "", overwrite = false) = 
+proc initConfig*(app: var App, settings: PrefsNode, parent = "", overwrite = false) = 
   # Add the preferences with the values defined in config["settings"]
   for name, data in settings: 
     let settingType = parseEnum[SettingTypes](data["type"])
@@ -341,141 +393,55 @@ proc updatePrefs*(app: var App) =
 proc color*(vec: ImVec4): Color = 
   color(vec.x, vec.y, vec.z, vec.w)
 
-proc toVec2(node: seq[JsonNode]): ImVec2 = 
-  ImVec2(x: node[0].getFloat(), y: node[1].getFloat())
-
-proc toVec4(node: seq[JsonNode]): ImVec4 = 
-  ImVec4(x: node[0].getFloat(), y: node[1].getFloat(), z: node[2].getFloat(), w: node[3].getFloat())
-
-proc toArray(vec: ImVec2): array[2, float32] = 
-  [vec.x, vec.y]
-
-proc toArray(vec: ImVec4): array[4, float32] = 
-  [vec.x, vec.y, vec.z, vec.w]
-
 proc toJson*(style: ImGuiStyle): JsonNode = 
-  %* {
-    "alpha": style.alpha, 
-    "disabledAlpha": style.disabledAlpha, 
-    "windowPadding": style.windowPadding.toArray(), 
-    "windowRounding": style.windowRounding, 
-    "windowBorderSize": style.windowBorderSize, 
-    "windowMinSize": style.windowMinSize.toArray(), 
-    "windowTitleAlign": style.windowTitleAlign.toArray(), 
-    "windowMenuButtonPosition": $style.windowMenuButtonPosition, 
-    "childRounding": style.childRounding, 
-    "childBorderSize": style.childBorderSize, 
-    "popupRounding": style.popupRounding, 
-    "popupBorderSize": style.popupBorderSize, 
-    "framePadding": style.framePadding.toArray(), 
-    "frameRounding": style.frameRounding, 
-    "frameBorderSize": style.frameBorderSize, 
-    "itemSpacing": style.itemSpacing.toArray(), 
-    "itemInnerSpacing": style.itemInnerSpacing.toArray(), 
-    "cellPadding": style.cellPadding.toArray(), 
-    "indentSpacing": style.indentSpacing, 
-    "columnsMinSpacing": style.columnsMinSpacing, 
-    "scrollbarSize": style.scrollbarSize, 
-    "scrollbarRounding": style.scrollbarRounding, 
-    "grabMinSize": style.grabMinSize, 
-    "grabRounding": style.grabRounding, 
-    "tabRounding": style.tabRounding, 
-    "tabBorderSize": style.tabBorderSize, 
-    "tabMinWidthForCloseButton": style.tabMinWidthForCloseButton, 
-    "colorButtonPosition": $style.colorButtonPosition, 
-    "buttonTextAlign": style.buttonTextAlign.toArray(), 
-    "selectableTextAlign": style.selectableTextAlign.toArray(), 
-    "colors": {
-      "Text": style.colors[ord ImGuiCol.Text].toArray(), 
-      "TextDisabled": style.colors[ord ImGuiCol.TextDisabled].toArray(), 
-      "WindowBg": style.colors[ord ImGuiCol.WindowBg].toArray(), 
-      "ChildBg": style.colors[ord ImGuiCol.ChildBg].toArray(), 
-      "PopupBg": style.colors[ord ImGuiCol.PopupBg].toArray(), 
-      "Border": style.colors[ord ImGuiCol.Border].toArray(), 
-      "BorderShadow": style.colors[ord ImGuiCol.BorderShadow].toArray(), 
-      "FrameBg": style.colors[ord ImGuiCol.FrameBg].toArray(), 
-      "FrameBgHovered": style.colors[ord ImGuiCol.FrameBgHovered].toArray(), 
-      "FrameBgActive": style.colors[ord ImGuiCol.FrameBgActive].toArray(), 
-      "TitleBg": style.colors[ord ImGuiCol.TitleBg].toArray(), 
-      "TitleBgActive": style.colors[ord ImGuiCol.TitleBgActive].toArray(), 
-      "TitleBgCollapsed": style.colors[ord ImGuiCol.TitleBgCollapsed].toArray(),
-      "MenuBarBg": style.colors[ord ImGuiCol.MenuBarBg].toArray(), 
-      "ScrollbarBg": style.colors[ord ImGuiCol.ScrollbarBg].toArray(), 
-      "ScrollbarGrab": style.colors[ord ImGuiCol.ScrollbarGrab].toArray(), 
-      "ScrollbarGrabHovered": style.colors[ord ImGuiCol.ScrollbarGrabHovered].toArray(), 
-      "ScrollbarGrabActive": style.colors[ord ImGuiCol.ScrollbarGrabActive].toArray(), 
-      "CheckMark": style.colors[ord ImGuiCol.CheckMark].toArray(), 
-      "SliderGrab": style.colors[ord ImGuiCol.SliderGrab].toArray(), 
-      "SliderGrabActive": style.colors[ord ImGuiCol.SliderGrabActive].toArray(), 
-      "Button": style.colors[ord ImGuiCol.Button].toArray(), 
-      "ButtonHovered": style.colors[ord ImGuiCol.ButtonHovered].toArray(), 
-      "ButtonActive": style.colors[ord ImGuiCol.ButtonActive].toArray(), 
-      "Header": style.colors[ord ImGuiCol.Header].toArray(), 
-      "HeaderHovered": style.colors[ord ImGuiCol.HeaderHovered].toArray(), 
-      "HeaderActive": style.colors[ord ImGuiCol.HeaderActive].toArray(), 
-      "Separator": style.colors[ord ImGuiCol.Separator].toArray(), 
-      "SeparatorHovered": style.colors[ord ImGuiCol.SeparatorHovered].toArray(), 
-      "SeparatorActive": style.colors[ord ImGuiCol.SeparatorActive].toArray(), 
-      "ResizeGrip": style.colors[ord ImGuiCol.ResizeGrip].toArray(), 
-      "ResizeGripHovered": style.colors[ord ImGuiCol.ResizeGripHovered].toArray(), 
-      "ResizeGripActive": style.colors[ord ImGuiCol.ResizeGripActive].toArray(), 
-      "Tab": style.colors[ord ImGuiCol.Tab].toArray(), 
-      "TabHovered": style.colors[ord ImGuiCol.TabHovered].toArray(), 
-      "TabActive": style.colors[ord ImGuiCol.TabActive].toArray(), 
-      "TabUnfocused": style.colors[ord ImGuiCol.TabUnfocused].toArray(), 
-      "TabUnfocusedActive": style.colors[ord ImGuiCol.TabUnfocusedActive].toArray(), 
-      "PlotLines": style.colors[ord ImGuiCol.PlotLines].toArray(), 
-      "PlotLinesHovered": style.colors[ord ImGuiCol.PlotLinesHovered].toArray(), 
-      "PlotHistogram": style.colors[ord ImGuiCol.PlotHistogram].toArray(), 
-      "PlotHistogramHovered": style.colors[ord ImGuiCol.PlotHistogramHovered].toArray(), 
-      "TableHeaderBg": style.colors[ord ImGuiCol.TableHeaderBg].toArray(), 
-      "TableBorderStrong": style.colors[ord ImGuiCol.TableBorderStrong].toArray(), 
-      "TableBorderLight": style.colors[ord ImGuiCol.TableBorderLight].toArray(), 
-      "TableRowBg": style.colors[ord ImGuiCol.TableRowBg].toArray(), 
-      "TableRowBgAlt": style.colors[ord ImGuiCol.TableRowBgAlt].toArray(), 
-      "TextSelectedBg": style.colors[ord ImGuiCol.TextSelectedBg].toArray(), 
-      "DragDropTarget": style.colors[ord ImGuiCol.DragDropTarget].toArray(), 
-      "NavHighlight": style.colors[ord ImGuiCol.NavHighlight].toArray(), 
-      "NavWindowingHighlight": style.colors[ord ImGuiCol.NavWindowingHighlight].toArray(), 
-      "NavWindowingDimBg": style.colors[ord ImGuiCol.NavWindowingDimBg].toArray(), 
-      "ModalWindowDimBg": style.colors[ord ImGuiCol.ModalWindowDimBg].toArray(), 
-    }
-  }
+  result = newJObject()
+  for name, field in style.fieldPairs:
+    when name in styleProps:
+      result[name] = 
+        when field is float32:
+          field.newJFloat()
+        elif field is ImVec2:
+          %[field.x, field.y]
+        elif field is ImGuiDir:
+          newJString($field)
 
-proc colorsFromJson(node: JsonNode): array[53, ImVec4] = 
+  result["colors"] = newJObject()
   for col in ImGuiCol:
-    if $col in node:
-      result[ord col] = node[$col].getElems().toVec4()
+    result["colors"][$col] = %[style.colors[ord col].x, style.colors[ord col].y, style.colors[ord col].z, style.colors[ord col].w]
 
 proc styleFromJson*(node: JsonNode): ImGuiStyle = 
-  if "alpha" in node: result.alpha = node["alpha"].getFloat()
-  if "disabledAlpha" in node: result.disabledAlpha = node["disabledAlpha"].getFloat()
-  if "windowPadding" in node: result.windowPadding = node["windowPadding"].getElems().toVec2()
-  if "windowRounding" in node: result.windowRounding = node["windowRounding"].getFloat()
-  if "windowBorderSize" in node: result.windowBorderSize = node["windowBorderSize"].getFloat()
-  if "windowMinSize" in node: result.windowMinSize = node["windowMinSize"].getElems().toVec2()
-  if "windowTitleAlign" in node: result.windowTitleAlign = node["windowTitleAlign"].getElems().toVec2()
-  if "windowMenuButtonPosition" in node: result.windowMenuButtonPosition = parseEnum[ImGuiDir](node["windowMenuButtonPosition"].getStr().capitalizeAscii())
-  if "childRounding" in node: result.childRounding = node["childRounding"].getFloat()
-  if "childBorderSize" in node: result.childBorderSize = node["childBorderSize"].getFloat()
-  if "popupRounding" in node: result.popupRounding = node["popupRounding"].getFloat()
-  if "popupBorderSize" in node: result.popupBorderSize = node["popupBorderSize"].getFloat()
-  if "framePadding" in node: result.framePadding = node["framePadding"].getElems().toVec2()
-  if "frameRounding" in node: result.frameRounding = node["frameRounding"].getFloat()
-  if "frameBorderSize" in node: result.frameBorderSize = node["frameBorderSize"].getFloat()
-  if "itemSpacing" in node: result.itemSpacing = node["itemSpacing"].getElems().toVec2()
-  if "itemInnerSpacing" in node: result.itemInnerSpacing = node["itemInnerSpacing"].getElems().toVec2()
-  if "cellPadding" in node: result.cellPadding = node["cellPadding"].getElems().toVec2()
-  if "indentSpacing" in node: result.indentSpacing = node["indentSpacing"].getFloat()
-  if "columnsMinSpacing" in node: result.columnsMinSpacing = node["columnsMinSpacing"].getFloat()
-  if "scrollbarSize" in node: result.scrollbarSize = node["scrollbarSize"].getFloat()
-  if "scrollbarRounding" in node: result.scrollbarRounding = node["scrollbarRounding"].getFloat()
-  if "grabMinSize" in node: result.grabMinSize = node["grabMinSize"].getFloat()
-  if "grabRounding" in node: result.grabRounding = node["grabRounding"].getFloat()
-  if "tabRounding" in node: result.tabRounding = node["tabRounding"].getFloat()
-  if "tabBorderSize" in node: result.tabBorderSize = node["tabBorderSize"].getFloat()
-  if "tabMinWidthForCloseButton" in node: result.tabMinWidthForCloseButton = node["tabMinWidthForCloseButton"].getFloat()
-  if "colorButtonPosition" in node: result.colorButtonPosition = parseEnum[ImGuiDir](node["colorButtonPosition"].getStr().capitalizeAscii())
-  if "buttonTextAlign" in node: result.buttonTextAlign = node["buttonTextAlign"].getElems().toVec2()
-  if "selectableTextAlign" in node: result.selectableTextAlign = node["selectableTextAlign"].getElems().toVec2()
-  if "colors" in node: result.colors = node["colors"].colorsFromJson()
+  for name, field in result.fieldPairs:
+    when name in styleProps:
+      if name in node:
+        case node[name].kind
+        of JFloat:
+          when field is float32:
+            field = node[name].getFloat()
+          else:
+            raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
+        of JArray:
+          when field is ImVec2:
+            field = igVec2(node[name][0].getFloat(), node[name][1].getFloat())
+          elif field is ImVec4:
+            field = igVec4(node[name][0].getFloat(), node[name][1].getFloat(), node[name][2].getFloat(), node[name][3].getFloat())
+          else:
+            raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
+        of JString:
+          when field is ImGuiDir:
+            field = parseEnum[ImGuiDir](node[name].getStr())
+          else:
+            raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
+        else:
+          raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
+
+  if "colors" in node:
+    for col in ImGuiCol:
+      if $col in node["colors"]:
+        let colorNode = node["colors"][$col]
+        if colorNode.kind != JArray:
+          raise newException(ValueError, "Got " & $colorNode.kind & " expected ImVec4 for color " & $col)
+
+        result.colors[ord col] = igVec4(colorNode[0].getFloat(), colorNode[1].getFloat(), colorNode[2].getFloat(), colorNode[3].getFloat())
+
+proc getCacheDir*(app: App): string = 
+  getCacheDir(app.config["name"].getString())

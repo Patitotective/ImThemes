@@ -13,8 +13,8 @@ when defined(release):
 const
   configPath = "config.niprefs"
   sidebarViews = [
-  FA_PencilSquareO,
-  FA_Search,  
+    FA_PencilSquareO, # Edit view
+    FA_Search,  # Browse view
   ]
 
 proc getData(path: string): string = 
@@ -25,9 +25,6 @@ proc getData(path: string): string =
 
 proc getData(node: PrefsNode): string = 
   node.getString().getData()
-
-proc getCacheDir(app: App): string = 
-  getCacheDir(app.config["name"].getString())
 
 proc drawAboutModal(app: App) = 
   var center: ImVec2
@@ -135,7 +132,7 @@ proc drawSidebar(app: var App) =
       if app.hoveredView == e:
         igPushStyleColor(ImGuiCol.Text, igGetColor(Text).lighten(0.2).igVec4())
 
-      centerCursorX(igCalcTextSize(cstring view).x + (igGetStyle().framePadding.x * 2), 0.5, sideBarWidth)
+      igCenterCursorX(igCalcTextSize(cstring view).x + (igGetStyle().framePadding.x * 2), 0.5, sideBarWidth)
       igText(cstring view)
 
       if app.currentView == e:
