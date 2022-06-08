@@ -1,6 +1,7 @@
-import std/[strutils, strformat, typetraits, enumutils, macros, math, times, json, os]
+import std/[strutils, strformat, typetraits, enumutils, macros, math, times, os]
 import chroma
 import niprefs
+import parsetoml
 import stb_image/read as stbi
 import nimgl/[imgui, glfw, opengl]
 
@@ -55,8 +56,11 @@ type
     sizesBuffer*, colorsBuffer*: string
 
     # Browse view
-    feed*: seq[JsonNode]
+    feed*: seq[TomlValueRef]
     browseSplitterSize*: tuple[a, b: float32]
+    browseCurrentTheme*: int
+    browseThemeStyle*: ImGuiStyle
+    browseBuffer*: string
 
 const styleProps* = ["alpha", "disabledAlpha", "windowPadding", "windowRounding", "windowBorderSize", "windowMinSize", "windowTitleAlign", "windowMenuButtonPosition", "childRounding", "childBorderSize", "popupRounding", "popupBorderSize", "framePadding", "frameRounding", "frameBorderSize", "itemSpacing", "itemInnerSpacing", "cellPadding", "indentSpacing", "columnsMinSpacing", "scrollbarSize", "scrollbarRounding", "grabMinSize", "grabRounding", "tabRounding", "tabBorderSize", "tabMinWidthForCloseButton", "colorButtonPosition", "buttonTextAlign", "selectableTextAlign"]
 const stylePropsHelp* = ["Global alpha applies to everything in Dear ImGui.", "Additional alpha multiplier applied by BeginDisabled(). Multiply over current value of Alpha.", "Padding within a window", "Radius of window corners rounding. Set to 0.0f to have rectangular windows. Large values tend to lead to variety of artifacts and are not recommended.", "Thickness of border around windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Minimum window size", "Alignment for title bar text", "Position of the collapsing/docking button in the title bar (left/right). Defaults to ImGuiDir_Left.", "Radius of child window corners rounding. Set to 0.0f to have rectangular child windows", "Thickness of border around child windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Radius of popup window corners rounding. Set to 0.0f to have rectangular child windows", "Thickness of border around popup or tooltip windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Padding within a framed rectangle (used by most widgets)", "Radius of frame corners rounding. Set to 0.0f to have rectangular frames (used by most widgets).", "Thickness of border around frames. Generally set to 0.0f or 1.0f. Other values not well tested.", "Horizontal and vertical spacing between widgets/lines", "Horizontal and vertical spacing between within elements of a composed widget (e.g. a slider and its label)", "Padding within a table cell", "Horizontal spacing when e.g. entering a tree node. Generally == (FontSize + FramePadding.x*2).", "Minimum horizontal spacing between two columns. Preferably > (FramePadding.x + 1).", "Width of the vertical scrollbar, Height of the horizontal scrollbar", "Radius of grab corners rounding for scrollbar", "Minimum width/height of a grab box for slider/scrollbar", "Radius of grabs corners rounding. Set to 0.0f to have rectangular slider grabs.", "Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs.", "Thickness of border around tabs.", "Minimum width for close button to appears on an unselected tab when hovered. Set to 0.0f to always show when hovering, set to FLT_MAX to never show close button unless selected.", "Side of the color button in the ColorEdit4 widget (left/right). Defaults to ImGuiDir_Right.", "Alignment of button text when button is larger than text.", "Alignment of selectable text. Defaults to (0.0f, 0.0f) (top-left aligned). It's generally important to keep this left-aligned if you want to lay multiple items on a same line."]
@@ -393,40 +397,52 @@ proc updatePrefs*(app: var App) =
 proc color*(vec: ImVec4): Color = 
   color(vec.x, vec.y, vec.z, vec.w)
 
-proc toJson*(style: ImGuiStyle): JsonNode = 
-  result = newJObject()
+proc toTArray(vec: ImVec4): TomlValueRef = 
+  result = newTArray()
+  result.add vec.x.newTFLoat()
+  result.add vec.y.newTFLoat()
+  result.add vec.z.newTFLoat()
+  result.add vec.w.newTFLoat()
+
+proc toTArray(vec: ImVec2): TomlValueRef = 
+  result = newTArray()
+  result.add vec.x.newTFLoat()
+  result.add vec.y.newTFLoat()
+
+proc toToml*(style: ImGuiStyle): TomlValueRef = 
+  result = newTTable()
   for name, field in style.fieldPairs:
     when name in styleProps:
       result[name] = 
         when field is float32:
-          field.newJFloat()
+          field.newTFLoat()
         elif field is ImVec2:
-          %[field.x, field.y]
+          field.toTArray()
         elif field is ImGuiDir:
-          newJString($field)
+          newTSTring($field)
 
-  result["colors"] = newJObject()
+  result["colors"] = newTTable()
   for col in ImGuiCol:
-    result["colors"][$col] = %[style.colors[ord col].x, style.colors[ord col].y, style.colors[ord col].z, style.colors[ord col].w]
+    result["colors"][$col] = style.colors[ord col].toTArray()
 
-proc styleFromJson*(node: JsonNode): ImGuiStyle = 
+proc styleFromToml*(node: TomlValueRef): ImGuiStyle = 
   for name, field in result.fieldPairs:
     when name in styleProps:
       if name in node:
         case node[name].kind
-        of JFloat:
+        of TomlValueKind.Float:
           when field is float32:
             field = node[name].getFloat()
           else:
             raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
-        of JArray:
+        of TomlValueKind.Array:
           when field is ImVec2:
             field = igVec2(node[name][0].getFloat(), node[name][1].getFloat())
           elif field is ImVec4:
             field = igVec4(node[name][0].getFloat(), node[name][1].getFloat(), node[name][2].getFloat(), node[name][3].getFloat())
           else:
             raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
-        of JString:
+        of TomlValueKind.String:
           when field is ImGuiDir:
             field = parseEnum[ImGuiDir](node[name].getStr())
           else:
@@ -438,10 +454,130 @@ proc styleFromJson*(node: JsonNode): ImGuiStyle =
     for col in ImGuiCol:
       if $col in node["colors"]:
         let colorNode = node["colors"][$col]
-        if colorNode.kind != JArray:
+        if colorNode.kind != TomlValueKind.Array:
           raise newException(ValueError, "Got " & $colorNode.kind & " expected ImVec4 for color " & $col)
 
         result.colors[ord col] = igVec4(colorNode[0].getFloat(), colorNode[1].getFloat(), colorNode[2].getFloat(), colorNode[3].getFloat())
 
 proc getCacheDir*(app: App): string = 
   getCacheDir(app.config["name"].getString())
+
+proc drawStylePreview*(app: var App, name: string, style: ImGuiStyle) = 
+  let prevStyle = igGetStyle()[]
+  igGetCurrentContext().style = style
+
+  if igBegin(cstring name & " Preview", flags = makeFlags(ImGuiWindowFlags.NoResize, AlwaysUseWindowPadding, NoMove, MenuBar)):
+    if igBeginMenuBar():
+      if igBeginMenu("File"):
+        igMenuItem("New")
+        igMenuItem("Open", "Ctrl+O")
+        if igBeginMenu("Open Recent"):
+          igMenuItem("fish_hat.c")
+          igMenuItem("fish_hat.inl")
+          igMenuItem("fish_hat.h")
+          igEndMenu()
+        igEndMenu()
+
+      igEndMenuBar()
+
+    if igBeginTabBar("Tabs"):
+      if igBeginTabItem("Basic"):
+        igText("Hello World!")
+        igTextDisabled("Bye World!"); if igIsItemHovered(): igSetTooltip("Disabled text")
+
+        igButton("Click me")
+        igSliderFloat("Slider", app.previewSlider.addr, 0, 50)
+        igInputTextWithHint("##input", "Type here...", cstring app.previewBuffer, 64)
+
+        igColorEdit4("Color Edit", app.previewCol)
+
+        if igBeginChild("Child", igVec2(0, 150), true):
+          for i in 1..100:
+            igSelectable(cstring "I'm beef #" & $i)
+          
+          igEndChild()
+
+        if igCollapsingHeader("Collapse me", DefaultOpen):
+          igIndent()
+          igButton("Popup")
+          if igIsItemClicked():
+            igOpenPopup("popup")
+
+          igBeginDisabled(true)
+          igButton("You cannot click me")
+          if igIsItemHovered(AllowWhenDisabled):
+            igSetTooltip("But you can see me")
+          
+          igSliderFloat("Slider shadow", app.previewSlider.addr, 0, 50)
+          igEndDisabled()
+
+          if igButton("Popup modal"):
+            igOpenPopup("modal")
+
+          igUnindent()
+    
+        if igBeginPopup("popup"):
+          for i in ["We", "Are", "What", "We", "Think"]:
+            igSelectable(cstring i)
+
+          igEndPopup()
+
+        if igBeginPopupModal("modal"):
+          igText("I'm a popup modal")
+          
+          if igButton("Close me"):
+            igCloseCurrentPopup()
+          
+          igEndPopup()
+
+        igEndTabItem()
+
+      if igBeginTabItem("Plots"):
+        # Plots
+        # Histogram
+        let arr = [0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f]
+        igPlotHistogram("Histogram", arr[0].unsafeAddr, int32 arr.len, 0, "Histogram", 0f, 1f, igVec2(0, 80f));
+
+        # Lines
+        if app.previewRefreshTime == 0:
+          app.previewRefreshTime = igGetTime()
+
+        while app.previewRefreshTime < igGetTime(): # Create data at fixed 60 Hz rate for the demo
+            app.previewValues[app.previewValuesOffset] = cos(app.previewPhase)
+            app.previewValuesOffset = int32 (app.previewValuesOffset + 1) mod app.previewValues.len
+            app.previewPhase += 0.1f * float32 app.previewValuesOffset
+            app.previewRefreshTime += 1f / 60f
+
+        var average = 0f
+        for n in app.previewValues:
+          average += n
+        average /= float32 app.previewValues.len
+
+        igPlotLines("Lines", app.previewValues[0].addr, int32 app.previewValues.len, app.previewValuesOffset, "Average", -1f, 1f, igVec2(0, 80f));
+        igEndTabItem()
+
+      if igBeginTabItem("Tables"):
+        if igBeginTable("table1", 4, makeFlags(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg)):
+          igTableSetupColumn("One")
+          igTableSetupColumn("Two")
+          igTableSetupColumn("Three")
+          igTableHeadersRow()
+
+          for row in 0..5:
+            igTableNextRow()
+            for col in 0..3:
+              igTableNextColumn()
+              igText(cstring &"Hello {row}, {col}")
+
+          igEndTable()
+
+        igEndTabItem()
+
+      igEndTabBar()
+
+  igGetCurrentContext().style = prevStyle
+
+  igEnd()
+
+template passFilter*(buffer: string, str: string): bool = 
+  buffer.cleanString().toLowerAscii() in str.toLowerAscii()

@@ -4,9 +4,6 @@ import utils
 
 const alignCount = 28 # For the properties
 
-proc passFilter(buffer: string, str: string): bool = 
-  buffer.cleanString().toLowerAscii() in str.toLowerAscii()
-
 proc drawSizesTab(app: var App, style: var ImGuiStyle) = 
   igDummy(igVec2(0, 5))
 

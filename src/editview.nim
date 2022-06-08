@@ -1,4 +1,4 @@
-import std/[strformat, strutils, math]
+import std/[strformat, strutils]
 import chroma
 import niprefs
 import imstyle
@@ -414,119 +414,6 @@ proc drawExportThemeModal(app: var App) =
 
     igEndPopup()
 
-proc drawPreviewWin(app: var App) = 
-  let theme = app.prefsCache["themes"][app.currentTheme]
-  if igBegin(cstring theme["name"].getString() & " Preview" & (if app.isThemeReadOnly(): " (Read-Only)" else: ""), flags = makeFlags(ImGuiWindowFlags.NoResize, AlwaysUseWindowPadding, NoMove, MenuBar)):
-    if igBeginMenuBar():
-      if igBeginMenu("File"):
-        igMenuItem("New")
-        igMenuItem("Open", "Ctrl+O")
-        if igBeginMenu("Open Recent"):
-          igMenuItem("fish_hat.c")
-          igMenuItem("fish_hat.inl")
-          igMenuItem("fish_hat.h")
-          igEndMenu()
-        igEndMenu()
-
-      igEndMenuBar()
-
-    if igBeginTabBar("Tabs"):
-      if igBeginTabItem("Basic"):
-        igText("Hello World!")
-        igTextDisabled("Bye World!"); if igIsItemHovered(): igSetTooltip("Disabled text")
-
-        igButton("Click me")
-        igSliderFloat("Slider", app.previewSlider.addr, 0, 50)
-        igInputTextWithHint("##input", "Type here...", cstring app.previewBuffer, 64)
-
-        igColorEdit4("Color Edit", app.previewCol)
-
-        if igBeginChild("Child", igVec2(0, 150), true):
-          for i in 1..100:
-            igSelectable(cstring "I'm beef #" & $i)
-          
-          igEndChild()
-
-        if igCollapsingHeader("Collapse me", DefaultOpen):
-          igIndent()
-          igButton("Popup")
-          if igIsItemClicked():
-            igOpenPopup("popup")
-
-          igBeginDisabled(true)
-          igButton("You cannot click me")
-          if igIsItemHovered(AllowWhenDisabled):
-            igSetTooltip("But you can see me")
-          
-          igSliderFloat("Slider shadow", app.previewSlider.addr, 0, 50)
-          igEndDisabled()
-
-          if igButton("Popup modal"):
-            igOpenPopup("modal")
-
-          igUnindent()
-    
-        if igBeginPopup("popup"):
-          for i in ["We", "Are", "What", "We", "Think"]:
-            igSelectable(cstring i)
-
-          igEndPopup()
-
-        if igBeginPopupModal("modal"):
-          igText("I'm a popup modal")
-          
-          if igButton("Close me"):
-            igCloseCurrentPopup()
-          
-          igEndPopup()
-
-        igEndTabItem()
-
-      if igBeginTabItem("Plots"):
-        # Plots
-        # Histogram
-        let arr = [0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f]
-        igPlotHistogram("Histogram", arr[0].unsafeAddr, int32 arr.len, 0, "Histogram", 0f, 1f, igVec2(0, 80f));
-
-        # Lines
-        if app.previewRefreshTime == 0:
-          app.previewRefreshTime = igGetTime()
-
-        while app.previewRefreshTime < igGetTime(): # Create data at fixed 60 Hz rate for the demo
-            app.previewValues[app.previewValuesOffset] = cos(app.previewPhase)
-            app.previewValuesOffset = int32 (app.previewValuesOffset + 1) mod app.previewValues.len
-            app.previewPhase += 0.1f * float32 app.previewValuesOffset
-            app.previewRefreshTime += 1f / 60f
-
-        var average = 0f
-        for n in app.previewValues:
-          average += n
-        average /= float32 app.previewValues.len
-
-        igPlotLines("Lines", app.previewValues[0].addr, int32 app.previewValues.len, app.previewValuesOffset, "Average", -1f, 1f, igVec2(0, 80f));
-        igEndTabItem()
-
-      if igBeginTabItem("Tables"):
-        if igBeginTable("table1", 4, makeFlags(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg)):
-          igTableSetupColumn("One")
-          igTableSetupColumn("Two")
-          igTableSetupColumn("Three")
-          igTableHeadersRow()
-
-          for row in 0..5:
-            igTableNextRow()
-            for col in 0..3:
-              igTableNextColumn()
-              igText(cstring &"Hello {row}, {col}")
-
-          igEndTable()
-
-        igEndTabItem()
-
-      igEndTabBar()
-
-  igEnd()
-
 proc switchTheme*(app: var App, themeIndex: int) = 
   app.editing = false
   app.currentTheme = themeIndex
@@ -686,13 +573,8 @@ proc drawEditView*(app: var App) =
     if igBeginChild("##editViewPreviewer", igVec2(app.editSplitterSize2.a, avail.y), flags = makeFlags(AlwaysUseWindowPadding)) and app.currentTheme >= 0:
       igSetNextWindowPos(igGetWindowPos())
       igSetNextWindowSize(igGetWindowSize())
-      
-      let prevStyle = igGetStyle()[]
-      igGetCurrentContext().style = app.themeStyle
 
-      app.drawPreviewWin()
-
-      igGetCurrentContext().style = prevStyle
+      app.drawStylePreview(app.prefsCache["themes"][app.currentTheme]["name"].getString() & (if app.isThemeReadOnly(): " (Read-Only)" else: ""), app.themeStyle)
 
     igEndChild(); igSameLine()
 

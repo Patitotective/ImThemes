@@ -245,8 +245,8 @@ proc initPrefs(app: var App) =
     win: {
       x: -1, # Negative numbers center the window
       y: -1,
-      width: 600,
-      height: 650
+      width: 1000,
+      height: 600
     }, 
     currentTheme: 0, 
     themes: [classicTheme, darkTheme, lightTheme, cherryTheme], 
@@ -255,8 +255,8 @@ proc initPrefs(app: var App) =
 proc initApp(config: PObjectType): App = 
   result = App(
     config: config, 
-    currentView: -1, hoveredView: -1, currentTheme: -1, 
-    sizesBuffer: newString(32), colorsBuffer: newString(32), previewBuffer: newString(64), 
+    currentView: -1, hoveredView: -1, currentTheme: -1, browseCurrentTheme: -1, 
+    sizesBuffer: newString(32), colorsBuffer: newString(32), previewBuffer: newString(64), browseBuffer: newString(64)
   )
   result.initPrefs()
   result.prefsCache = result.prefs.content
