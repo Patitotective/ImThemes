@@ -1,7 +1,6 @@
-import std/[strutils, strformat, typetraits, enumutils, macros, math, times, os]
+import std/[strutils, strformat, typetraits, enumutils, macros, times, math, os]
 import chroma
 import niprefs
-import parsetoml
 import stb_image/read as stbi
 import nimgl/[imgui, glfw, opengl]
 
@@ -27,9 +26,8 @@ type
     win*: GLFWWindow
     font*, bigFont*: ptr ImFont
     prefs*: Prefs
-    cache*: PObjectType # Settings cache
-    config*: PObjectType # Prefs table
-    prefsCache*: PObjectType
+    cache*: TomlValueRef # Settings cache
+    config*: TomlValueRef # Prefs table
 
     # Views
     currentView*, hoveredView*: int
@@ -56,7 +54,7 @@ type
     sizesBuffer*, colorsBuffer*: string
 
     # Browse view
-    feed*: seq[TomlValueRef]
+    feed*: TomlValueRef
     browseSplitterSize*: tuple[a, b: float32]
     browseCurrentTheme*: int
     browseThemeStyle*: ImGuiStyle
@@ -244,17 +242,13 @@ proc getEnumValues*[T: enum](): seq[string] =
   for i in T:
     result.add $i
 
-proc parseEnum*[T: enum](node: PrefsNode): T = 
-  case node.kind:
-  of PInt:
-    result = T(node.getInt())
-  of PString:
-    try:
-      result = parseEnum[T](node.getString().capitalizeAscii())
-    except:
-      raise newException(ValueError, &"Invalid enum value {node.getString()} for {$T}. Valid values are {$getEnumValues[T]()}")
-  else:
-    raise newException(ValueError, &"Invalid kind {node.kind} for an enum. Valid kinds are PInt or PString")
+proc parseEnum*[T: enum](node: TomlValueRef): T = 
+  assert node.kind == TomlKind.String
+
+  try:
+    result = parseEnum[T](node.getString().capitalizeAscii())
+  except:
+    raise newException(ValueError, &"Invalid enum value {node.getString()} for {$T}. Valid values are {$getEnumValues[T]()}")
 
 proc makeFlags*[T: enum](flags: varargs[T]): T =
   ## Mix multiple flags of a specific enum
@@ -264,49 +258,54 @@ proc makeFlags*[T: enum](flags: varargs[T]): T =
 
   result = T res
 
-proc getFlags*[T: enum](node: PrefsNode): T = 
+proc getFlags*[T: enum](node: TomlValueRef): T = 
   ## Similar to parseEnum but this one mixes multiple enum values if node.kind == PSeq
   case node.kind:
-  of PString, PInt:
+  of TomlKind.String, TomlKind.Int:
     result = parseEnum[T](node)
-  of PSeq:
+  of TomlKind.Array:
     var flags: seq[T]
-    for i in node.getSeq():
+    for i in node.getArray():
       flags.add parseEnum[T](i)
 
     result = makeFlags(flags)
   else:
     raise newException(ValueError, "Invalid kind {node.kind} for {$T} enum. Valid kinds are PInt, PString or PSeq") 
 
-proc parseColor3*(node: PrefsNode): array[3, float32] = 
+proc parseColor3*(node: TomlValueRef): array[3, float32] = 
   case node.kind
-  of PString:
+  of TomlKind.String:
     let color = node.getString().parseHtmlColor()
     result[0] = color.r
     result[1] = color.g
     result[2] = color.b 
-  of PSeq:
+  of TomlKind.Array:
+    assert node.len == 3
     result[0] = node[0].getFloat()
     result[1] = node[1].getFloat()
     result[2] = node[2].getFloat()
   else:
     raise newException(ValueError, &"Invalid color RGB {node}")
 
-proc parseColor4*(node: PrefsNode): array[4, float32] = 
+proc parseColor4*(node: TomlValueRef): array[4, float32] = 
   case node.kind
-  of PString:
-    let color = node.getString().replace("#").parseHexAlpha()
+  of TomlKind.String:
+    let color = node.getString().parseHtmlColor()
     result[0] = color.r
     result[1] = color.g
     result[2] = color.b 
     result[3] = color.a
-  of PSeq:
+  of TomlKind.Array:
+    assert node.len == 4
     result[0] = node[0].getFloat()
     result[1] = node[1].getFloat()
     result[2] = node[2].getFloat()
     result[3] = node[3].getFloat()
   else:
     raise newException(ValueError, &"Invalid color RGBA {node}")
+
+proc color*(vec: ImVec4): Color = 
+  color(vec.x, vec.y, vec.z, vec.w)
 
 proc initGLFWImage*(data: ImageData): GLFWImage = 
   result = GLFWImage(pixels: cast[ptr cuchar](data.image[0].unsafeAddr), width: int32 data.width, height: int32 data.height)
@@ -359,20 +358,21 @@ proc removeInside*(text: string, open, close: char): tuple[text: string, inside:
     if inside:
       result.inside.add i
 
-proc initConfig*(app: var App, settings: PrefsNode, parent = "", overwrite = false) = 
+proc initConfig*(app: var App, settings: TomlValueRef, parent = "", overwrite = false) = 
   # Add the preferences with the values defined in config["settings"]
-  for name, data in settings: 
+  for data in settings: 
+    let name = data["name"].getString()
     let settingType = parseEnum[SettingTypes](data["type"])
     if settingType == Section:
-      app.initConfig(data["content"], parent = name)  
+      app.initConfig(data["content"], parent = name, overwrite)
     elif parent.len > 0:
-      if parent notin app.prefsCache or overwrite:
-        app.prefsCache[parent] = newPObject()
-      elif name notin app.prefsCache[parent] or overwrite:
-        app.prefsCache[parent][name] = data["default"]
+      if parent notin app.prefs or overwrite:
+        app.prefs[parent] = newTTable()
+      if name notin app.prefs[parent] or overwrite:
+        app.prefs{parent, name} = data["default"]
     else:
-      if name notin app.prefsCache or overwrite:
-        app.prefsCache[name] = data["default"]
+      if name notin app.prefs or overwrite:
+        app.prefs[name] = data["default"]
 
 proc newString*(lenght: int, default: string): string = 
   result = newString(lenght)
@@ -393,71 +393,6 @@ proc pushString*(str: var string, val: string) =
 proc updatePrefs*(app: var App) = 
   # Update the values depending on the preferences here
   echo "Updating preferences..."
-
-proc color*(vec: ImVec4): Color = 
-  color(vec.x, vec.y, vec.z, vec.w)
-
-proc toTArray(vec: ImVec4): TomlValueRef = 
-  result = newTArray()
-  result.add vec.x.newTFLoat()
-  result.add vec.y.newTFLoat()
-  result.add vec.z.newTFLoat()
-  result.add vec.w.newTFLoat()
-
-proc toTArray(vec: ImVec2): TomlValueRef = 
-  result = newTArray()
-  result.add vec.x.newTFLoat()
-  result.add vec.y.newTFLoat()
-
-proc toToml*(style: ImGuiStyle): TomlValueRef = 
-  result = newTTable()
-  for name, field in style.fieldPairs:
-    when name in styleProps:
-      result[name] = 
-        when field is float32:
-          field.newTFLoat()
-        elif field is ImVec2:
-          field.toTArray()
-        elif field is ImGuiDir:
-          newTSTring($field)
-
-  result["colors"] = newTTable()
-  for col in ImGuiCol:
-    result["colors"][$col] = style.colors[ord col].toTArray()
-
-proc styleFromToml*(node: TomlValueRef): ImGuiStyle = 
-  for name, field in result.fieldPairs:
-    when name in styleProps:
-      if name in node:
-        case node[name].kind
-        of TomlValueKind.Float:
-          when field is float32:
-            field = node[name].getFloat()
-          else:
-            raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
-        of TomlValueKind.Array:
-          when field is ImVec2:
-            field = igVec2(node[name][0].getFloat(), node[name][1].getFloat())
-          elif field is ImVec4:
-            field = igVec4(node[name][0].getFloat(), node[name][1].getFloat(), node[name][2].getFloat(), node[name][3].getFloat())
-          else:
-            raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
-        of TomlValueKind.String:
-          when field is ImGuiDir:
-            field = parseEnum[ImGuiDir](node[name].getStr())
-          else:
-            raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
-        else:
-          raise newException(ValueError, "Got " & $node[name].kind & " expected " & $typeOf(field) & " for " & name)
-
-  if "colors" in node:
-    for col in ImGuiCol:
-      if $col in node["colors"]:
-        let colorNode = node["colors"][$col]
-        if colorNode.kind != TomlValueKind.Array:
-          raise newException(ValueError, "Got " & $colorNode.kind & " expected ImVec4 for color " & $col)
-
-        result.colors[ord col] = igVec4(colorNode[0].getFloat(), colorNode[1].getFloat(), colorNode[2].getFloat(), colorNode[3].getFloat())
 
 proc getCacheDir*(app: App): string = 
   getCacheDir(app.config["name"].getString())

@@ -34,7 +34,7 @@ task "build", "Build AppImage":
     &"AppDir/{name}.desktop", 
     desktop % [
       "name", name, 
-      "categories", config["categories"].getSeq().mapIt(it.getString()).join(";"), 
+      "categories", config["categories"].getArray().mapIt(it.getString()).join(";"), 
       "version", config["version"].getString(), 
       "comment", config["comment"].getString(), 
       "arch", arch

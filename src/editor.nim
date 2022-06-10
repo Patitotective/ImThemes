@@ -61,7 +61,7 @@ proc drawColorsTab(app: var App, style: var ImGuiStyle) =
       
       var colorArray = [style.colors[ord color].x, style.colors[ord color].y, style.colors[ord color].z, style.colors[ord color].w]
 
-      if igColorEdit4(cstring "##" & $color, colorArray, makeFlags(AlphaPreview, AlphaBar)):
+      if igColorEdit4(cstring "##" & $color, colorArray, makeFlags(AlphaPreviewHalf, AlphaBar)):
         style.colors[ord color] = igVec4(colorArray[0], colorArray[1], colorArray[2], colorArray[3])
   
       igSameLine(); igText(cstring $color)

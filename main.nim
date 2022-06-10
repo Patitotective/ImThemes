@@ -11,7 +11,7 @@ when defined(release):
   from resourcesdata import resources
 
 const
-  configPath = "config.niprefs"
+  configPath = "config.toml"
   sidebarViews = [
     FA_PencilSquareO, # Edit view
     FA_Search,  # Browse view
@@ -23,7 +23,8 @@ proc getData(path: string): string =
   else:
     readFile(path)
 
-proc getData(node: PrefsNode): string = 
+proc getData(node: TomlValueRef): string = 
+  assert node.kind == TomlKind.String
   node.getString().getData()
 
 proc drawAboutModal(app: App) = 
@@ -211,8 +212,8 @@ proc initWindow(app: var App) =
   glfwWindowHint(GLFWResizable, GLFW_TRUE)
 
   app.win = glfwCreateWindow(
-    app.prefsCache["win"]["width"].getInt().int32, 
-    app.prefsCache["win"]["height"].getInt().int32, 
+    app.prefs["win"]["width"].getInt().int32, 
+    app.prefs["win"]["height"].getInt().int32, 
     app.config["name"].getString().cstring, 
     icon = false # Do not use default icon
   )
@@ -227,42 +228,42 @@ proc initWindow(app: var App) =
   app.win.setWindowSizeLimits(app.config["minSize"][0].getInt().int32, app.config["minSize"][1].getInt().int32, GLFW_DONT_CARE, GLFW_DONT_CARE) # minWidth, minHeight, maxWidth, maxHeight
 
   # If negative pos, center the window in the first monitor
-  if app.prefsCache["win"]["x"].getInt() < 0 or app.prefsCache["win"]["y"].getInt() < 0:
+  if app.prefs["win"]["x"].getInt() < 0 or app.prefs["win"]["y"].getInt() < 0:
     var monitorX, monitorY, count: int32
     let monitors = glfwGetMonitors(count.addr)
     let videoMode = monitors[0].getVideoMode()
 
     monitors[0].getMonitorPos(monitorX.addr, monitorY.addr)
     app.win.setWindowPos(
-      monitorX + int32((videoMode.width - int app.prefsCache["win"]["width"].getInt()) / 2), 
-      monitorY + int32((videoMode.height - int app.prefsCache["win"]["height"].getInt()) / 2)
+      monitorX + int32((videoMode.width - int app.prefs["win"]["width"].getInt()) / 2), 
+      monitorY + int32((videoMode.height - int app.prefs["win"]["height"].getInt()) / 2)
     )
   else:
-    app.win.setWindowPos(app.prefsCache["win"]["x"].getInt().int32, app.prefsCache["win"]["y"].getInt().int32)
+    app.win.setWindowPos(app.prefs["win"]["x"].getInt().int32, app.prefs["win"]["y"].getInt().int32)
 
 proc initPrefs(app: var App) = 
-  app.prefs = toPrefs({
-    win: {
-      x: -1, # Negative numbers center the window
-      y: -1,
-      width: 1000,
-      height: 600
-    }, 
-    currentTheme: 0, 
-    themes: [classicTheme, darkTheme, lightTheme, cherryTheme], 
-  }).initPrefs((app.getCacheDir() / app.config["name"].getString()).changeFileExt("niprefs"))
+  app.prefs = initPrefs(
+    path = (app.getCacheDir() / app.config["name"].getString()).changeFileExt("toml"), 
+    default = toToml {
+      win: {
+        x: -1, # Negative numbers center the window
+        y: -1,
+        width: 1500,
+        height: 700
+      }, 
+      currentTheme: 0, 
+      themes: [classicTheme.getTable(), darkTheme.getTable(), lightTheme.getTable(), cherryTheme.getTable()].newTTables(), 
+    }
+  )
 
-proc initApp(config: PObjectType): App = 
+proc initApp(config: TomlValueRef): App = 
   result = App(
     config: config, 
     currentView: -1, hoveredView: -1, currentTheme: -1, browseCurrentTheme: -1, 
     sizesBuffer: newString(32), colorsBuffer: newString(32), previewBuffer: newString(64), browseBuffer: newString(64)
   )
   result.initPrefs()
-  result.prefsCache = result.prefs.content
   result.initConfig(result.config["settings"])
-
-  result.switchTheme(int result.prefsCache["currentTheme"].getInt())
 
 proc terminate(app: var App) = 
   var x, y, width, height: int32
@@ -270,17 +271,17 @@ proc terminate(app: var App) =
   app.win.getWindowPos(x.addr, y.addr)
   app.win.getWindowSize(width.addr, height.addr)
   
-  app.prefsCache["win"]["x"] = x
-  app.prefsCache["win"]["y"] = y
-  app.prefsCache["win"]["width"] = width
-  app.prefsCache["win"]["height"] = height
+  app.prefs{"win", "x"} = x
+  app.prefs{"win", "y"} = y
+  app.prefs{"win", "width"} = width
+  app.prefs{"win", "height"} = height
 
-  app.prefsCache["currentTheme"] = app.currentTheme
+  app.prefs["currentTheme"] = app.currentTheme
 
-  app.prefs.overwrite(app.prefsCache)
+  app.prefs.save()
 
 proc main() =
-  var app = initApp(configPath.getData().parsePrefs())
+  var app = initApp(Toml.decode(configPath.getData(), TomlValueRef))
 
   # Setup Window
   doAssert glfwInit()
@@ -297,7 +298,8 @@ proc main() =
   io.iniFilename = nil # Disable .ini config file
 
   # Setup Dear ImGui style using ImStyle
-  setIgStyle(app.config["stylePath"].getData().parsePrefs())
+  setStyleFromToml(Toml.decode(app.config["stylePath"].getData(), TomlValueRef))
+  app.switchTheme(int app.prefs["currentTheme"].getInt())
 
   # Setup Platform/Renderer backends
   doAssert igGlfwInitForOpenGL(app.win, true)
