@@ -22,9 +22,9 @@ type
 
   ImageData* = tuple[image: seq[byte], width, height: int]
 
-  App* = ref object
+  App* = object
     win*: GLFWWindow
-    font*, bigFont*: ptr ImFont
+    font*, bigFont*, smallFont*, sidebarIconFont*: ptr ImFont
     prefs*: Prefs
     cache*: TomlValueRef # Settings cache
     config*: TomlValueRef # Prefs table
@@ -35,7 +35,7 @@ type
     # Edit view
     currentTheme*: int
     currentExportTab*: int
-    themeName*, themeAuthor*: string # Create theme popup
+    themeName*: string # Create theme popup
     currentThemeTemplate*: int # Create theme popup
     editing*, saved*, copied*: bool # Editing theme, saved theme, copied export text
     prevAvail*: ImVec2 # Previous avail content
@@ -51,14 +51,19 @@ type
     previewValues*: array[90, float32]
     previewCol*: array[4, float32]
     # Editor
+    alignWidth*: float32
     sizesBuffer*, colorsBuffer*: string
 
     # Browse view
-    feed*: TomlValueRef
+    feed*: TomlTables
     browseSplitterSize*: tuple[a, b: float32]
-    browseCurrentTheme*: int
+    browseCurrentTheme*: TomlTableRef
     browseThemeStyle*: ImGuiStyle
     browseBuffer*: string
+    currentSort*: int
+    # filters*: array[13, bool]
+    filters*: seq[string]
+    authorFilter*: string
 
 const styleProps* = ["alpha", "disabledAlpha", "windowPadding", "windowRounding", "windowBorderSize", "windowMinSize", "windowTitleAlign", "windowMenuButtonPosition", "childRounding", "childBorderSize", "popupRounding", "popupBorderSize", "framePadding", "frameRounding", "frameBorderSize", "itemSpacing", "itemInnerSpacing", "cellPadding", "indentSpacing", "columnsMinSpacing", "scrollbarSize", "scrollbarRounding", "grabMinSize", "grabRounding", "tabRounding", "tabBorderSize", "tabMinWidthForCloseButton", "colorButtonPosition", "buttonTextAlign", "selectableTextAlign"]
 const stylePropsHelp* = ["Global alpha applies to everything in Dear ImGui.", "Additional alpha multiplier applied by BeginDisabled(). Multiply over current value of Alpha.", "Padding within a window", "Radius of window corners rounding. Set to 0.0f to have rectangular windows. Large values tend to lead to variety of artifacts and are not recommended.", "Thickness of border around windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Minimum window size", "Alignment for title bar text", "Position of the collapsing/docking button in the title bar (left/right). Defaults to ImGuiDir_Left.", "Radius of child window corners rounding. Set to 0.0f to have rectangular child windows", "Thickness of border around child windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Radius of popup window corners rounding. Set to 0.0f to have rectangular child windows", "Thickness of border around popup or tooltip windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Padding within a framed rectangle (used by most widgets)", "Radius of frame corners rounding. Set to 0.0f to have rectangular frames (used by most widgets).", "Thickness of border around frames. Generally set to 0.0f or 1.0f. Other values not well tested.", "Horizontal and vertical spacing between widgets/lines", "Horizontal and vertical spacing between within elements of a composed widget (e.g. a slider and its label)", "Padding within a table cell", "Horizontal spacing when e.g. entering a tree node. Generally == (FontSize + FramePadding.x*2).", "Minimum horizontal spacing between two columns. Preferably > (FramePadding.x + 1).", "Width of the vertical scrollbar, Height of the horizontal scrollbar", "Radius of grab corners rounding for scrollbar", "Minimum width/height of a grab box for slider/scrollbar", "Radius of grabs corners rounding. Set to 0.0f to have rectangular slider grabs.", "Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs.", "Thickness of border around tabs.", "Minimum width for close button to appears on an unselected tab when hovered. Set to 0.0f to always show when hovering, set to FLT_MAX to never show close button unless selected.", "Side of the color button in the ColorEdit4 widget (left/right). Defaults to ImGuiDir_Right.", "Alignment of button text when button is larger than text.", "Alignment of selectable text. Defaults to (0.0f, 0.0f) (top-left aligned). It's generally important to keep this left-aligned if you want to lay multiple items on a same line."]
@@ -115,6 +120,9 @@ proc igHSV*(h, s, v: float32, a: float32 = 1f): ImColor =
 proc igGetContentRegionAvail*(): ImVec2 = 
   igGetContentRegionAvailNonUDT(result.addr)
 
+proc igGetWindowContentRegionMax*(): ImVec2 = 
+  igGetWindowContentRegionMaxNonUDT(result.addr)
+
 proc igGetWindowPos*(): ImVec2 = 
   igGetWindowPosNonUDT(result.addr)
 
@@ -134,8 +142,14 @@ proc igGetColor*(color: ImGuiCol): Color =
 proc igGetCursorPos*(): ImVec2 = 
   igGetCursorPosNonUDT(result.addr)
 
+proc igGetItemRectMax*(): ImVec2 = 
+  igGetItemRectMaxNonUDT(result.addr)
+
 proc igGetItemRectMin*(): ImVec2 = 
   igGetItemRectMinNonUDT(result.addr)
+
+proc igGetItemRectSize*(): ImVec2 = 
+  igGetItemRectSizeNonUDT(result.addr)
 
 proc igCalcItemSize*(size: ImVec2, default_w: float32, default_h: float32): ImVec2 = 
   igCalcItemSizeNonUDT(result.addr, size, default_w, default_h)
@@ -229,6 +243,43 @@ proc igSpinner*(label: string, radius: float, thickness: float32, color: uint32)
     window.drawList.pathLineTo(ImVec2(x: centre.x + cos(a + context.time * 8) * radius, y: centre.y + sin(a + context.time * 8) * radius))
 
   window.drawList.pathStroke(color, thickness = thickness)
+
+proc igTextWithEllipsis*(text: string, maxWidth: float32 = igGetContentRegionAvail().x, ellipsisText: string = "...") = 
+  var text = text
+  var width = igCalcTextSize(cstring text).x
+  let ellipsisWidth = igCalcTextSize(cstring ellipsisText).x
+
+  if width > maxWidth:
+    while width + ellipsisWidth > maxWidth and text.len > ellipsisText.len:
+      text = text[0..^ellipsisText.len]
+      width = igCalcTextSize(cstring text).x
+
+    igText(cstring text & ellipsisText)
+  else:
+    igText(cstring text)
+
+proc igAddUnderLine*(col: uint32) = 
+  var min = igGetItemRectMin()
+  let max = igGetItemRectMax()
+
+  min.y = max.y
+  igGetWindowDrawList().addLine(min, max, col, 1f)
+
+proc igClickableText*(text: string, sameLineBefore, sameLineAfter = true): bool = 
+  let style = igGetStyle()
+  if sameLineBefore: igSameLine(0f, style.itemInnerSpacing.x)
+
+  igPushStyleColor(ImGuiCol.Text, igGetColorU32(ButtonHovered))
+  igText(cstring text)
+  igPopStyleColor()
+
+  if igIsItemHovered():
+    if igIsMouseClicked(ImGuiMouseButton.Left):
+      result = true
+
+    igAddUnderLine(igGetColorU32(ButtonHovered))
+
+  if sameLineAfter: igSameLine(0f, style.itemInnerSpacing.x)
 
 # To be able to print large holey enums
 macro enumFullRange*(a: typed): untyped =
@@ -430,7 +481,7 @@ proc drawStylePreview*(app: var App, name: string, style: ImGuiStyle) =
           for i in 1..100:
             igSelectable(cstring "I'm beef #" & $i)
           
-          igEndChild()
+        igEndChild()
 
         if igCollapsingHeader("Collapse me", DefaultOpen):
           igIndent()
@@ -510,9 +561,29 @@ proc drawStylePreview*(app: var App, name: string, style: ImGuiStyle) =
 
       igEndTabBar()
 
-  igGetCurrentContext().style = prevStyle
-
   igEnd()
+
+  igGetCurrentContext().style = prevStyle
 
 template passFilter*(buffer: string, str: string): bool = 
   buffer.cleanString().toLowerAscii() in str.toLowerAscii()
+
+proc `<`*(date1, date2: TomlDateTime): bool = 
+  assert date1.date.isSome() and date2.date.isSome()
+
+  # By date
+  if date1.date.get().year < date2.date.get().year:
+    result = true
+  elif date1.date.get().month < date2.date.get().month:
+    result = true
+  elif date1.date.get().day < date2.date.get().day:
+    result = true
+  # By time
+  elif date1.time.get().hour < date2.time.get().hour:
+    result = true
+  elif date1.time.get().minute < date2.time.get().minute:
+    result = true
+  elif date1.time.get().second < date2.time.get().second:
+    result = true
+  elif date1.time.get().subsecond < date2.time.get().subsecond:
+    result = true

@@ -1,10 +1,8 @@
-import std/strutils
+import std/[sequtils, strutils]
 import nimgl/imgui
 import utils
 
-const alignCount = 28 # For the properties
-
-proc drawSizesTab(app: var App, style: var ImGuiStyle) = 
+proc drawSizesTab(app: var App, style: var ImGuiStyle, alignWidth: float32) = 
   igDummy(igVec2(0, 5))
 
   igInputTextWithHint("##filter", "Filter properties", cstring app.sizesBuffer, 32)
@@ -14,25 +12,32 @@ proc drawSizesTab(app: var App, style: var ImGuiStyle) =
     for name, field in style.fieldPairs:
       when name in styleProps:
         if app.sizesBuffer.passFilter(name):
-          igText(cstring capitalizeAscii(name & ": ").alignLeft(alignCount)); igSameLine()
-          
+          igText(cstring name.capitalizeAscii() & ": "); igSameLine()
+          igDummy(igVec2(alignWidth - name.igCalcTextSize().x, 0)); igSameLine()
+
           let minVal = 
             if name.toLowerAscii().endsWith("alpha"):
               0.1f
             else:
               0f
           let maxVal = 
-            if name.toLowerAscii().endsWith("bordersize") or name.toLowerAscii().endsWith("alpha"):
+            if name.toLowerAscii().endsWith("bordersize") or name.toLowerAscii().endsWith("alpha") or name.toLowerAscii().endsWith("align"):
               1f
             else:
               20f
 
+          let format = 
+            if name.toLowerAscii().endsWith("bordersize"):
+              "%.0f"
+            else:
+              "%.1f"
+
           when field is float32:
-            igSliderFloat(cstring "##" & name, field.addr, minVal, maxVal, "%.1f")
+            igSliderFloat(cstring "##" & name, field.addr, minVal, maxVal, cstring format)
           elif field is ImVec2:
             var arrayVec = [field.x, field.y]
 
-            if igSliderFloat2(cstring "##" & name, arrayVec, minVal, maxVal, "%.1f"):
+            if igSliderFloat2(cstring "##" & name, arrayVec, minVal, maxVal, cstring format):
               field = igVec2(arrayVec[0], arrayVec[1])
           elif field is ImGuiDir:
             let currentItem = ord field
@@ -71,7 +76,10 @@ proc drawColorsTab(app: var App, style: var ImGuiStyle) =
 proc drawEditor*(app: var App, style: var ImGuiStyle) = 
   if igBeginTabBar("##tabs"):
     if igBeginTabItem("Sizes"):
-      app.drawSizesTab(style)
+      if app.alignWidth == 0:
+        app.alignWidth = styleProps.mapIt(igCalcTextSize(cstring it).x).max()
+
+      app.drawSizesTab(style, app.alignWidth)
       igEndTabItem()
 
     if igBeginTabItem("Colors"):

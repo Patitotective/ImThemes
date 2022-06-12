@@ -14,7 +14,7 @@ const
   configPath = "config.toml"
   sidebarViews = [
     FA_PencilSquareO, # Edit view
-    FA_Search,  # Browse view
+    FA_Search, # Browse view
   ]
 
 proc getData(path: string): string = 
@@ -116,16 +116,15 @@ proc drawMainMenuBar(app: var App) =
   app.drawPrefsModal()
 
 proc drawSidebar(app: var App) = 
-  const sideBarWidth = 50
+  const sidebarWidth = 50
   var anyHovered = false
-  igPushFont(app.bigFont)
+  igPushFont(app.sidebarIconFont)
   igPushStyleColor(ImGuiCol.WindowBg, igGetColor(WindowBg).darken(0.02).igVec4())
   igPushStyleColor(ImGuiCol.Text, "#9A9996".parseHtmlHex().igVec4())
-  igPushStyleVar(ImGuiStyleVar.WindowPadding, igVec2(0, 0))
+  igPushStyleVar(ImGuiStyleVar.WindowPadding, igVec2(0, 20))
   igPushStyleVar(ImGuiStyleVar.ItemSpacing, igVec2(0, 7))
 
-  if igBeginViewportSideBar("##sidebar", igGetMainViewport(), ImGuiDir.Left, sideBarWidth, ImGuiWindowFlags.None):
-    igDummy(igVec2(0, 10))
+  if igBeginViewportSideBar("##sidebar", igGetMainViewport(), ImGuiDir.Left, sidebarWidth, ImGuiWindowFlags.None):
     for e, view in sidebarViews:
       if app.currentView == e:
         igPushStyleColor(ImGuiCol.Text, "#FFFFFF".parseHtmlHex().igVec4())
@@ -133,7 +132,7 @@ proc drawSidebar(app: var App) =
       if app.hoveredView == e:
         igPushStyleColor(ImGuiCol.Text, igGetColor(Text).lighten(0.2).igVec4())
 
-      igCenterCursorX(igCalcTextSize(cstring view).x + (igGetStyle().framePadding.x * 2), 0.5, sideBarWidth)
+      igCenterCursorX(igCalcTextSize(cstring view).x, avail = sidebarWidth)
       igText(cstring view)
 
       if app.currentView == e:
@@ -252,18 +251,23 @@ proc initPrefs(app: var App) =
         height: 700
       }, 
       currentTheme: 0, 
+      currentSort: 0, 
       themes: [classicTheme.getTable(), darkTheme.getTable(), lightTheme.getTable(), cherryTheme.getTable()].newTTables(), 
+      starred: [],  
     }
   )
 
 proc initApp(config: TomlValueRef): App = 
   result = App(
     config: config, 
-    currentView: -1, hoveredView: -1, currentTheme: -1, browseCurrentTheme: -1, 
+    currentView: -1, hoveredView: -1, currentTheme: -1, browseCurrentTheme: new TomlTableRef, 
     sizesBuffer: newString(32), colorsBuffer: newString(32), previewBuffer: newString(64), browseBuffer: newString(64)
   )
   result.initPrefs()
   result.initConfig(result.config["settings"])
+
+  result.switchTheme(int result.prefs["currentTheme"].getInt())
+  result.currentSort = int result.prefs["currentSort"].getInt()
 
 proc terminate(app: var App) = 
   var x, y, width, height: int32
@@ -277,6 +281,7 @@ proc terminate(app: var App) =
   app.prefs{"win", "height"} = height
 
   app.prefs["currentTheme"] = app.currentTheme
+  app.prefs["currentSort"] = app.currentSort
 
   app.prefs.save()
 
@@ -299,7 +304,6 @@ proc main() =
 
   # Setup Dear ImGui style using ImStyle
   setStyleFromToml(Toml.decode(app.config["stylePath"].getData(), TomlValueRef))
-  app.switchTheme(int app.prefs["currentTheme"].getInt())
 
   # Setup Platform/Renderer backends
   doAssert igGlfwInitForOpenGL(app.win, true)
@@ -314,8 +318,13 @@ proc main() =
 
   io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat(), config.addr, ranges[0].addr)
 
-  app.bigFont = io.fonts.igAddFontFromMemoryTTF(app.config["fontPath"].getData(), app.config["fontSize"].getFloat()+15)
-  io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat()+15, config.addr, ranges[0].addr)
+  app.bigFont = io.fonts.igAddFontFromMemoryTTF(app.config["bigFontPath"].getData(), app.config["fontSize"].getFloat() + 2)
+  io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat() + 2, config.addr, ranges[0].addr)
+
+  app.smallFont = io.fonts.igAddFontFromMemoryTTF(app.config["fontPath"].getData(), app.config["fontSize"].getFloat() - 2)
+  io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat() - 2, config.addr, ranges[0].addr)
+
+  app.sidebarIconFont = io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat() + 18, glyph_ranges = ranges[0].addr)
 
   # Main loop
   while not app.win.windowShouldClose:

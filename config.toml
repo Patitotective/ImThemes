@@ -13,11 +13,12 @@ stylePath = "assets/style.toml"
 iconPath = "assets/icon.png"
 svgIconPath = "assets/icon.svg"
 iconFontPath = "assets/forkawesome-webfont.ttf"
-fontPath = "assets/ProggyVector Regular.ttf" # Other options are Roboto-Regular.ttf, Cousine-Regular.ttf or Karla-Regular.ttf
-fontSize = 16.0
+fontPath = "assets/Karla-Regular.ttf"
+bigFontPath = "assets/Karla-Bold.ttf"
+fontSize = 18.0
 
 # Window
-minSize = [200, 200] # Width, height
+minSize = [600, 600] # Width, height
 
 # Settings for the preferences window
 [[settings]]
