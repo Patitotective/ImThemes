@@ -5,9 +5,9 @@ import nimgl/imgui
 
 import utils
 
-proc drawSettings(app: var App, settings: TomlValueRef, alignCount: Natural, parent = "")
+proc drawSettings(app: var App, settings: TomlValueRef, alignWidth: float32, parent = "")
 
-proc drawSetting(app: var App, data: TomlValueRef, alignCount: Natural, parent = "") = 
+proc drawSetting(app: var App, data: TomlValueRef, alignWidth: float32, parent = "") = 
   let name = data["name"].getString()
   proc getCacheVal(app: var App): TomlValueRef = 
     if parent.len > 0:
@@ -23,8 +23,8 @@ proc drawSetting(app: var App, data: TomlValueRef, alignCount: Natural, parent =
   let settingType = parseEnum[SettingTypes](data["type"])
   let label = if "display" in data: data["display"].getString() else: name.capitalizeAscii()
   if settingType != Section:
-    igText(cstring (label & ": ").alignLeft(alignCount))
-    igSameLine()
+    igText(cstring label.capitalizeAscii() & ": "); igSameLine(0, 0)
+    igDummy(igVec2(alignWidth - igCalcTextSize(cstring label.capitalizeAscii() & ": ").x, 0)); igSameLine(0, 0)
 
   case settingType
   of Input:
@@ -152,13 +152,13 @@ proc drawSetting(app: var App, data: TomlValueRef, alignCount: Natural, parent =
       if parent.len > 0:
         raise newException(ValueError, "Nested sections are not supported. Implement your own")
       else:
-        app.drawSettings(data["content"], alignCount, name)
+        app.drawSettings(data["content"], alignWidth, name)
 
   if "help" in data:
     igSameLine()
     igHelpMarker(data["help"].getString())
 
-proc drawSettings(app: var App, settings: TomlValueRef, alignCount: Natural, parent = "") = 
+proc drawSettings(app: var App, settings: TomlValueRef, alignWidth: float32, parent = "") = 
   assert settings.kind == TomlKind.Tables
 
   for data in settings:
@@ -172,24 +172,28 @@ proc drawSettings(app: var App, settings: TomlValueRef, alignCount: Natural, par
         if name notin app.cache:
           app.cache[name] = app.prefs[name]
 
-    app.drawSetting(data, alignCount, parent)
+    app.drawSetting(data, alignWidth, parent)
+
+proc calcAlignWidth(settings: TomlValueRef): float32 = 
+  for data in settings:
+    let label = if "display" in data: data["display"].getString() else: data["name"].getString().capitalizeAscii()
+    var width: float32
+
+    if parseEnum[SettingTypes](data["type"]) == Section:
+      width = calcAlignWidth(data["content"])
+    else:
+      width = igCalcTextSize(cstring label & ": ").x
+
+    if width > result: 
+      result = width
 
 proc drawPrefsModal*(app: var App) = 
-  proc calcAlignCount(settings: TomlValueRef, margin: int = 6): Natural = 
-    for data in settings:
-      let name = data["name"].getString()
-      if parseEnum[SettingTypes](data["type"]) == Section:
-        let alignCount = calcAlignCount(data["content"])
-        if alignCount > result: result = alignCount+margin
-      else:
-        if name.len > result: result = name.len+margin
-
   var close = false
 
   igSetNextWindowPos(igGetMainViewport().getCenter(), Always, igVec2(0.5f, 0.5f))
 
   if igBeginPopupModal("Preferences", flags = makeFlags(AlwaysAutoResize, HorizontalScrollbar)):
-    app.drawSettings(app.config["settings"], calcAlignCount(app.config["settings"]))
+    app.drawSettings(app.config["settings"], calcAlignWidth(app.config["settings"]))
 
     igSpacing()
 
@@ -209,7 +213,7 @@ proc drawPrefsModal*(app: var App) =
     igSameLine()
 
     # Right aling button
-    igSetCursorPosX(igGetCurrentWindow().size.x - (igCalcTextSize("Reset").x + (igGetStyle().framePadding.x * 2)) - igGetStyle().windowPadding.x)
+    igSetCursorPosX(igGetCurrentWindow().size.x - igCalcFrameSize("Reset").x - igGetStyle().windowPadding.x)
     if igButton("Reset"):
       igOpenPopup("Reset?")
 

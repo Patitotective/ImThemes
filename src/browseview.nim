@@ -1,4 +1,4 @@
-import std/[httpclient, algorithm, sequtils, strutils, math, os]
+import std/[httpclient, algorithm, sequtils, strutils, random, math, os]
 import niprefs
 import imstyle
 import nimgl/imgui
@@ -6,12 +6,9 @@ import nimgl/imgui
 import utils, icons
 
 const feedURL = "https://github.com/Patitotective/ImThemes/blob/main/themes.toml?raw=true"
-const colors* = @["red", "blue", "green", "yellow", "orange", "purple", "magenta", "pink", "gray"]
-const tags* = @["light", "dark", "high-contrast", "rounded"]
 
-var
-  fetched = false
-  fetchThread: Thread[string]
+var fetched = false
+var fetchThread: Thread[string]
 
 proc fetch(path: string) = 
   # FIXME
@@ -49,54 +46,12 @@ proc getFeed(app: App): TomlTables =
 
 proc drawBrowseListHeader(app: var App) = 
   let style = igGetStyle()
-  let drawlist = igGetWindowDrawList()
 
   igInputTextWithHint("##search", "Search...", cstring app.browseBuffer, 64); igSameLine()
   if igButton(FA_Sort):
     igOpenPopup("sort")
   igSameLine()
-  if igButton(FA_Plus):
-    igOpenPopup("addFilter")
-
-  igDummy(igVec2(style.framePadding.x, 0)); igSameLine()
-
-  let filtersCopy = app.deepCopy().filters & (if app.authorFilter.len > 0: @[app.authorFilter] else: @[])
-  for e, filter in filtersCopy:
-    drawList.channelsSplit(2)
-
-    drawList.channelsSetCurrent(1)
-    igAlignTextToFramePadding()
-    igText(cstring filter.capitalizeAscii())
-    
-    drawList.channelsSetCurrent(0)
-    drawlist.addRectFilled(igGetItemRectMin() - style.framePadding, igGetItemRectMax() + style.framePadding, igGetColorU32(ImGuiCol.Tab))
-
-    drawList.channelsMerge()
-
-    igSameLine()
-    igPushStyleVar(FrameRounding, 0f)
-    igPushStyleColor(ImGuiCol.Button, igGetColorU32(ImGuiCol.Tab))
-    igPushStyleColor(ImGuiCol.ButtonHovered, igGetColorU32(ImGuiCol.TabHovered))
-    igPushStyleColor(ImGuiCol.ButtonActive, igGetColorU32(ImGuiCol.TabActive))
-
-    if igButton(cstring FA_Times & "##" & $e):
-      if filter == app.authorFilter:
-        app.authorFilter.reset()
-      else:
-        app.filters.delete filtersCopy.find(filter)
-
-    igPopStyleColor(3)
-    igPopStyleVar()
-
-    let lastButton = igGetItemRectMax().x
-    # Expected position if next button was on same line
-    let nextButton = lastButton + 0.5 + (if e < filtersCopy.high: igCalcTextSize(cstring filtersCopy[e+1].capitalizeAscii()).x + style.itemSpacing.x + igCalcTextSize(FA_Times).x + (style.framePadding.x * 4) else: 0)
-    
-    if e < filtersCopy.high:
-      if nextButton < igGetWindowPos().x + igGetWindowContentRegionMax().x:
-        igSameLine(); igDummy(igVec2(0.5, 0)); igSameLine()
-      else:
-        igDummy(igVec2(style.framePadding.x, 0)); igSameLine()
+  app.drawFilters(app.filters, app.authorFilter)
 
   if igBeginPopup("sort"):
     for e, ele in [FA_SortAlphaAsc, FA_SortAlphaDesc, "Newest", "Oldest"]:
@@ -105,25 +60,13 @@ proc drawBrowseListHeader(app: var App) =
 
     igEndPopup()
 
-  if igBeginPopup("addFilter"):
-    for e, tag in @["starred"] & tags:
-      if tag notin app.filters:
-        if igMenuItem(cstring tag.capitalizeAscii()):
-          app.filters.add tag
-
-    if igBeginMenu("Colors"):
-      for e, col in colors:
-        if col notin app.filters:
-          if igMenuItem(cstring col.capitalizeAscii()):
-            app.filters.add col
-
-      igEndMenu()
-
-    igEndPopup() 
-
 proc drawBrowseList(app: var App) = 
   let style = igGetStyle()
   let feed = app.getFeed()
+
+  if app.browseCurrentTheme.len == 0:
+    randomize()
+    app.browseCurrentTheme = feed[rand(feed.high)]
 
   for e, theme in feed:
     if app.browseBuffer.passFilter(theme["name"].getString()):
@@ -139,9 +82,9 @@ proc drawBrowseList(app: var App) =
       
       igTextWithEllipsis(
         theme["description"].getString(), 
-        maxWidth = igGetContentRegionAvail().x - style.itemSpacing.x - igCalcTextSize(cstring starText).x - (style.framePadding.x * 2)
+        maxWidth = igGetContentRegionAvail().x - (style.itemSpacing.x + igCalcFrameSize(starText).x + style.windowPadding.x)
       )
-      igSameLine(); igCenterCursorX(igCalcTextSize(cstring starText).x + (style.framePadding.x * 2), align = 1)
+      igSameLine(); igCenterCursorX(igCalcFrameSize(starText).x + style.windowPadding.x, align = 1)
       
       if igButton(cstring starText & "##" & $e):
         if starred:
@@ -155,10 +98,13 @@ proc drawBrowsePreview(app: var App) =
   let style = igGetStyle()
   let avail = igGetContentRegionAvail()
 
+  let prevWindowPadding = igGetStyle().windowPadding
   igPushStyleVar(WindowPadding, igVec2(150, 20))
   if igBeginChild("##browsePreview", igVec2(app.browseSplitterSize.b, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
     if app.browseCurrentTheme.len > 0:
+
       let theme = app.browseCurrentTheme
+      let themeStyle = theme["style"].styleFromToml()
 
       app.bigFont.igPushFont()
       igText(cstring theme["name"].getString())
@@ -166,16 +112,15 @@ proc drawBrowsePreview(app: var App) =
     
       igSameLine()
 
-      # app.smallFont.igPushFont()
       igText(cstring "By ")
       if igClickableText(theme["author"].getString(), sameLineAfter = false):
         app.authorFilter = theme["author"].getString()
-      # igPopFont()
       
       igTextWrapped(cstring theme["description"].getString())
 
       if igButton("Get it"):
-        echo "Open export modal"
+        app.copied = false
+        igOpenPopup("###exportTheme")
 
       if theme["tags"].len > 0:
         igSameLine()
@@ -201,14 +146,17 @@ proc drawBrowsePreview(app: var App) =
         igPopStyleColor(3)
         igPopStyleVar()
 
-
       if igBeginChild("##preview"):
         igSetNextWindowPos(igGetWindowPos())
         igSetNextWindowSize(igGetWindowSize())
 
-        app.drawStylePreview(theme["name"].getString(), theme["style"].styleFromToml())
+        app.drawStylePreview(theme["name"].getString(), themeSTyle)
       
       igEndChild()
+
+      igPushStyleVar(WindowPadding, prevWindowPadding)
+      app.drawExportThemeModal(themeStyle, theme["name"].getString(), theme["author"].getString())
+      igPopStyleVar()
 
   igEndChild()
   igPopStyleVar()

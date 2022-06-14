@@ -18,7 +18,7 @@ bigFontPath = "assets/Karla-Bold.ttf"
 fontSize = 18.0
 
 # Window
-minSize = [600, 600] # Width, height
+minSize = [700, 500] # Width, height
 
 # Settings for the preferences window
 [[settings]]

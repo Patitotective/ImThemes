@@ -12,8 +12,8 @@ proc drawSizesTab(app: var App, style: var ImGuiStyle, alignWidth: float32) =
     for name, field in style.fieldPairs:
       when name in styleProps:
         if app.sizesBuffer.passFilter(name):
-          igText(cstring name.capitalizeAscii() & ": "); igSameLine()
-          igDummy(igVec2(alignWidth - name.igCalcTextSize().x, 0)); igSameLine()
+          igText(cstring name.capitalizeAscii() & ": "); igSameLine(0, 0)
+          igDummy(igVec2(alignWidth - igCalcTextSize(cstring name.capitalizeAscii() & ": ").x, 0)); igSameLine(0, 0)
 
           let minVal = 
             if name.toLowerAscii().endsWith("alpha"):
@@ -76,10 +76,7 @@ proc drawColorsTab(app: var App, style: var ImGuiStyle) =
 proc drawEditor*(app: var App, style: var ImGuiStyle) = 
   if igBeginTabBar("##tabs"):
     if igBeginTabItem("Sizes"):
-      if app.alignWidth == 0:
-        app.alignWidth = styleProps.mapIt(igCalcTextSize(cstring it).x).max()
-
-      app.drawSizesTab(style, app.alignWidth)
+      app.drawSizesTab(style, styleProps.mapIt(igCalcTextSize(cstring it & ": ").x).max())
       igEndTabItem()
 
     if igBeginTabItem("Colors"):
