@@ -1,4 +1,4 @@
-import std/[httpclient, algorithm, sequtils, strutils, random, math, os]
+import std/[httpclient, algorithm, strformat, sequtils, strutils, random, math, os]
 import niprefs
 import imstyle
 import nimgl/imgui
@@ -11,8 +11,7 @@ var fetched = false
 var fetchThread: Thread[string]
 
 proc fetch(path: string) = 
-  # FIXME
-  # newHttpClient().downloadFile(feedURL, path)
+  newHttpClient().downloadFile(feedURL, path)
   fetched = true
 
 proc getFeed(app: App): TomlTables = 
@@ -72,7 +71,8 @@ proc drawBrowseList(app: var App) =
     if app.browseBuffer.passFilter(theme["name"].getString()):
       let starred = theme["name"] in app.prefs["starred"]
       let starText = if starred: FA_Star else: FA_StarO
-      if igSelectable(cstring "##" & $e, size = igVec2(0, igGetFrameHeight() + app.bigFont.fontSize + (style.framePadding.y * 2)), flags = ImGuiSelectableFlags.AllowItemOverlap):
+      let selected = theme["name"] == app.browseCurrentTheme["name"]
+      if igSelectable(cstring "##" & $e, selected, size = igVec2(0, igGetFrameHeight() + app.bigFont.fontSize + (style.framePadding.y * 2)), flags = ImGuiSelectableFlags.AllowItemOverlap):
         app.browseCurrentTheme = feed[e]
 
       igSameLine(); igBeginGroup()
@@ -81,7 +81,7 @@ proc drawBrowseList(app: var App) =
       igPopFont()
       
       igTextWithEllipsis(
-        theme["description"].getString(), 
+        if theme["description"].getString().len > 0: theme["description"].getString() else: "No description.", 
         maxWidth = igGetContentRegionAvail().x - (style.itemSpacing.x + igCalcFrameSize(starText).x + style.windowPadding.x)
       )
       igSameLine(); igCenterCursorX(igCalcFrameSize(starText).x + style.windowPadding.x, align = 1)
@@ -93,6 +93,29 @@ proc drawBrowseList(app: var App) =
           app.prefs["starred"].add theme["name"]
 
       igEndGroup()
+
+proc getForkName(app: App, name: string): string = 
+  let forkName = "Fork of " & name
+  let forks = app.prefs["themes"].getTables().filterIt(it["name"].getString().startsWith(forkName))
+  if forks.len == 0:
+    result = forkName
+  else:
+    result = &"{forkName} #{forks.len}"
+
+proc drawForkThemeModal(app: var App, theme: TomlTableRef) = 
+  igSetNextWindowPos(igGetMainViewport().getCenter(), Always, igVec2(0.5f, 0.5f))
+  if igBeginPopupModal("Fork Theme", flags = makeFlags(AlwaysAutoResize)):
+    igText("Are you sure you want to fork it?")
+
+    if igButton("Yes"):
+      app.prefs["themes"].add toTTable({name: app.getForkName(theme["name"].getString()), style: theme["style"], forkedFrom: theme["name"]})
+      app.currentView = 0 # Switch to edit view
+      app.switchTheme(app.prefs["themes"].getTables().high)
+
+    igSameLine()
+    if igButton("Cancel"): igCloseCurrentPopup()
+
+    igEndPopup()
 
 proc drawBrowsePreview(app: var App) = 
   let style = igGetStyle()
@@ -112,16 +135,28 @@ proc drawBrowsePreview(app: var App) =
     
       igSameLine()
 
-      igText(cstring "By ")
+      igText("By ")
       if igClickableText(theme["author"].getString(), sameLineAfter = false):
         app.authorFilter = theme["author"].getString()
-      
-      igTextWrapped(cstring theme["description"].getString())
+
+      if "forkedFrom" in theme:
+        igSameLine()
+
+        igText("forked from ")
+        if igClickableText(theme["forkedFrom"].getString(), sameLineAfter = false):
+          # Since there can be no themes with the same name index 0 is enough
+          app.browseCurrentTheme = app.feed.filterIt(it["name"] == theme["forkedFrom"])[0]
+
+      igTextWrapped(cstring(if theme["description"].getString().len > 0: theme["description"].getString() else: "No description provided."))
 
       if igButton("Get it"):
         app.copied = false
         igOpenPopup("###exportTheme")
 
+      igSameLine()
+      if igButton("Fork it"):
+        igOpenPopup("Fork Theme")
+      
       if theme["tags"].len > 0:
         igSameLine()
     
@@ -156,7 +191,9 @@ proc drawBrowsePreview(app: var App) =
 
       igPushStyleVar(WindowPadding, prevWindowPadding)
       app.drawExportThemeModal(themeStyle, theme["name"].getString(), theme["author"].getString())
+      app.drawForkThemeModal(theme)
       igPopStyleVar()
+
 
   igEndChild()
   igPopStyleVar()
@@ -165,9 +202,7 @@ proc drawBrowseView*(app: var App) =
   if not fetched and not fetchThread.running:
     fetchThread.createThread(fetch, app.getCacheDir() / "themes.toml")
   elif fetched and app.feed.len == 0:
-    # FIXME
-    # app.feed = Toml.loadFile(app.getCacheDir() / "themes.toml", TomlValueRef)["themes"]
-    app.feed = Toml.loadFile("themes.toml", TomlValueRef)["themes"].getTables()
+    app.feed = Toml.loadFile(app.getCacheDir() / "themes.toml", TomlValueRef)["themes"].getTables()
 
   let avail = igGetContentRegionAvail()
 

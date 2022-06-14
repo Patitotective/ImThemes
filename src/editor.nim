@@ -16,7 +16,7 @@ proc drawSizesTab(app: var App, style: var ImGuiStyle, alignWidth: float32) =
           igDummy(igVec2(alignWidth - igCalcTextSize(cstring name.capitalizeAscii() & ": ").x, 0)); igSameLine(0, 0)
 
           let minVal = 
-            if name.toLowerAscii().endsWith("alpha"):
+            if name.toLowerAscii().endsWith("alpha") or name.toLowerAscii() == "scrollbarsize":
               0.1f
             else:
               0f

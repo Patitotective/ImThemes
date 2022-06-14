@@ -1,5 +1,4 @@
 import std/sequtils
-import chroma
 import niprefs
 import imstyle
 import nimgl/imgui
@@ -35,8 +34,7 @@ proc drawCreateThemeModal(app: var App) =
 
     if igButton("Ok"):
       app.prefs["themes"].add toTTable({name: app.themeName.cleanString(), style: templates[app.currentThemeTemplate]["style"]})
-      app.currentTheme = app.prefs["themes"].getTables().high
-      app.themeStyle = styleFromToml(app.prefs["themes"][app.currentTheme]["style"])
+      app.switchTheme(app.prefs["themes"].getTables().high)
 
       igCloseCurrentPopup()
 
@@ -46,34 +44,6 @@ proc drawCreateThemeModal(app: var App) =
     igSameLine()
     if igButton("Cancel"): igCloseCurrentPopup()
     
-    igEndPopup()
-
-proc switchTheme*(app: var App, themeIndex: int) = 
-  app.editing = false
-  app.currentTheme = themeIndex
-  app.editSplitterSize1.a = 0f
-  app.editSplitterSize2.b = 0f
-  app.themeStyle = styleFromToml(app.prefs["themes"][themeIndex]["style"])
-
-proc saveCurTheme(app: var App) = 
-  app.saved = true
-  app.prevThemeStyle = app.themeStyle
-  app.prefs["themes"][app.currentTheme]["style"] = app.themeStyle.styleToToml(colorProc = proc(col: ImVec4): TomlValueRef = col.color().toHtmlRgba().newTString())
-
-proc drawNotSavedModal(app: var App) = 
-  igSetNextWindowPos(igGetMainViewport().getCenter(), Always, igVec2(0.5f, 0.5f))
-  if igBeginPopupModal("Not Saved", flags = AlwaysAutoResize):
-    igText("Do you want to save the current changes?")
-    if igButton("Yes"):
-      app.saveCurTheme()
-      igCloseCurrentPopup()
-    
-    igSameLine()
-    if igButton("No"):
-      app.themeStyle = app.prevThemeStyle
-      app.switchTheme(app.currentTheme)
-      igCloseCurrentPopup()
-
     igEndPopup()
 
 proc drawDeleteThemeModal(app: var App) = 
@@ -148,6 +118,7 @@ proc drawPublishThemeModal(app: var App) =
         app.themeStyle, 
         app.themeName.cleanString(), 
         description = app.themeDesc.cleanString(), 
+        forkedFrom = if "forkedFrom" in app.prefs["themes"][app.currentTheme]: app.prefs["themes"][app.currentTheme]["forkedFrom"].getString() else: "", 
         tags = app.publishFilters, 
         tabs = {Publish}, 
         availDiff = igVec2(0, igGetFrameHeight() + style.itemSpacing.y)
@@ -171,74 +142,87 @@ proc drawThemesList(app: var App) =
       let selected = e == app.currentTheme
       let name = cstring theme["name"].getString() & (if app.isThemeReadOnly(e): " (Read-Only)" else: "")
 
-      if igSelectable(name, selected) and (not selected or (selected and app.editing)):
-        if not app.saved and app.editing:
-          igOpenPopup("Not Saved")
-        else:
-          app.switchTheme(e)
+      if igSelectable(name, selected, flags = ImGuiSelectableFlags.DontClosePopups) and (not selected or (selected and app.editing)):
+        app.switchTheme(e)
 
-      if not app.isThemeReadOnly(e) and igIsItemHovered() and (igIsMouseDoubleClicked(ImGuiMouseButton.Left) or igIsMouseClicked(ImGuiMouseButton.Right)):
-        igOpenPopup("menu")
-
-    if igBeginPopup("menu"):
-      if igMenuItem("Rename"):
-        app.themeName = newString(64, app.prefs["themes"][app.currentTheme]["name"].getString())
-        openRename = true
-      if igMenuItem("Delete"):
-        openDelete = true
-      igEndPopup()
+      if not app.isThemeReadOnly(e) and igBeginPopupContextItem():
+        if not selected: app.switchTheme(e)
+        if igMenuItem("Rename"):
+          app.themeName = newString(64, app.prefs["themes"][app.currentTheme]["name"].getString())
+          openRename = true
+        if igMenuItem("Delete"):
+          openDelete = true
+        igEndPopup()
 
     if openRename: igOpenPopup("Edit Name")
     if openDelete: igOpenPopup("Delete Theme")
 
-    app.drawNotSavedModal()
     app.drawEditNameModal()
     app.drawDeleteThemeModal()
 
     igEndListBox()
 
-  var selected = app.currentTheme >= 0
-
   if igButton("Create"):
     (app.themeName, app.currentThemeTemplate) = (newString(64), -1)
     igOpenPopup("New Theme")
 
-  if not selected:
-    igBeginDisabled()
-
   igSameLine()
-  var editBtnDisabled = false
-  if app.isThemeReadOnly() or (app.editing and app.saved):
+  
+  let readOnly = app.isThemeReadOnly()
+  var editBtnDisabled = false # When editing editBtn means discardBtn and SaveBtn
+
+  if readOnly or (app.editing and app.saved): # Cannot edit a read-only theme or an already saved theme
     editBtnDisabled = true
     igBeginDisabled()
 
   if app.editing:
-    if igButton(cstring "Save") and not app.saved:
-      app.saveCurTheme()
+    if igButton("Discard"):
+      app.themeStyle = app.prevThemeStyle
+      app.prefs["themes"][app.currentTheme]["style"] = app.prefs["themes"][app.currentTheme]["prevStyle"]
+
+    if igIsItemHovered(AllowWhenDisabled):
+      if editBtnDisabled:
+        igEndDisabled() # To show tooltips with normal alpha
+        igSetTooltip("No changes to discard")
+        igBeginDisabled() # Restore disabled alpha
+      else:
+        igSetTooltip("Discard changes")
+
+    igSameLine()
+    if igButton("Save"):
+      app.prevThemeStyle = app.themeStyle
+      app.prefs["themes"][app.currentTheme]["prevStyle"] = app.prefs["themes"][app.currentTheme]["style"]
+
+    if igIsItemHovered(AllowWhenDisabled):
+      if editBtnDisabled:
+        igEndDisabled() # To show tooltips with normal alpha
+        igSetTooltip("No changes to save")
+        igBeginDisabled()
+      else:
+        igSetTooltip("Save changes")
   else:
     if igButton("Edit"):
-      app.saved = true
       app.editing = true
-      app.prevThemeStyle = app.themeStyle
+
+    if editBtnDisabled and igIsItemHovered(AllowWhenDisabled):
+      igEndDisabled() # To show tooltips with normal alpha
+      igSetTooltip("Read-Only")
+      igBeginDisabled()
 
   if editBtnDisabled:
     igEndDisabled()
-    if igIsItemHovered(AllowWhenDisabled):
-      if app.isThemeReadOnly():
-        igSetTooltip("Read-Only")
-      elif app.saved:
-        igSetTooltip("No changes to save")
 
-  if app.isThemeReadOnly():
+  if readOnly:
     igBeginDisabled()
 
-  igSameLine()
-  if igButton("Publish"):
-    app.themeName = newString(64, app.prefs["themes"][app.currentTheme]["name"].getString())
-    app.themeDesc = newString(128)
-    igOpenPopup("Publish Theme")
+  if not app.editing:
+    igSameLine()
+    if igButton("Publish"):
+      app.themeName = newString(64, app.prefs["themes"][app.currentTheme]["name"].getString())
+      app.themeDesc = newString(128)
+      igOpenPopup("Publish Theme")
 
-  if app.isThemeReadOnly():
+  if readOnly:
     igEndDisabled()
     if igIsItemHovered(AllowWhenDisabled):
       igSetTooltip("Read-Only")
@@ -247,9 +231,6 @@ proc drawThemesList(app: var App) =
   if igButton("Export"):
     app.copied = false
     igOpenPopup("###exportTheme")
-
-  if not selected:
-    igEndDisabled()
 
   app.drawCreateThemeModal()
   app.drawPublishThemeModal()
@@ -278,7 +259,7 @@ proc drawEditView*(app: var App) =
 
   # First time or when switch editing
   if app.editing and app.editSplitterSize2.b == 0f:
-    (app.editSplitterSize1, app.editSplitterSize2) = ((avail.x * 0.15f, 0f), (avail.x * 0.425f, avail.x * 0.425f))
+    (app.editSplitterSize1, app.editSplitterSize2) = ((avail.x * 0.2f, 0f), (avail.x * 0.4f, avail.x * 0.4f))
   elif app.editSplitterSize1.a == 0f:
     (app.editSplitterSize1, app.editSplitterSize2) = ((avail.x * 0.5f, 0f), (avail.x * 0.5f, 0f))
 
@@ -292,7 +273,7 @@ proc drawEditView*(app: var App) =
   if igBeginChild("##editViewSplitter2", igVec2(app.editSplitterSize2.a + app.editSplitterSize2.b, avail.y)):
     igSplitter(true, 8, app.editSplitterSize2.a.addr, app.editSplitterSize2.b.addr, minSize, if app.editing: minSize else: 0, avail.y)
     # Preview
-    if igBeginChild("##editViewPreviewer", igVec2(app.editSplitterSize2.a, avail.y), flags = makeFlags(AlwaysUseWindowPadding)) and app.currentTheme >= 0:
+    if igBeginChild("##editViewPreviewer", igVec2(app.editSplitterSize2.a, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
       igSetNextWindowPos(igGetWindowPos())
       igSetNextWindowSize(igGetWindowSize())
 
@@ -302,8 +283,9 @@ proc drawEditView*(app: var App) =
 
     # Editor
     if app.editing:
+      app.prefs["themes"][app.currentTheme]["style"] = app.themeStyle.styleToToml()
       app.saved = app.themeStyle == app.prevThemeStyle
-        
+
       if igBeginChild("##editViewEditor", igVec2(app.editSplitterSize2.b, avail.y), flags = makeFlags(AlwaysUseWindowPadding, HorizontalScrollbar)):
         app.drawEditor(app.themeStyle)
       igEndChild()

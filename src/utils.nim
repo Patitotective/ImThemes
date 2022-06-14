@@ -1,5 +1,6 @@
 import std/[typetraits, enumutils, strformat, strutils, macros, times, math, os]
 import chroma
+import imstyle
 import niprefs
 import stb_image/read as stbi
 import nimgl/[imgui, glfw, opengl]
@@ -501,16 +502,15 @@ proc drawStylePreview*(app: var App, name: string, style: ImGuiStyle) =
       if igBeginTabItem("Basic"):
         igText("Hello World!")
         igTextDisabled("Bye World!"); if igIsItemHovered(): igSetTooltip("Disabled text")
-        igURLText("https://github.com/Patitotective/ImThemes/edit/main/themes.toml", "themes.toml", sameLineBefore = false, sameLineAfter = false)
 
-        igButton("Click me")
+        igButton("Click me"); igSameLine(); igButton("Me too")
         igSliderFloat("Slider", app.previewSlider.addr, 0, 50)
         igInputTextWithHint("##input", "Type here...", cstring app.previewBuffer, 64)
 
         igColorEdit4("Color Edit", app.previewCol)
 
         if igBeginChild("Child", igVec2(0, 150), true):
-          for i in 1..100:
+          for i in 1..50:
             igSelectable(cstring "I'm beef #" & $i)
           
         igEndChild()
@@ -658,7 +658,7 @@ proc strWithName*[T: object](obj: T): string =
   result = $typeof obj
   result.add $obj
 
-proc formatTemplate*(style: ImGuiStyle, name: string, exportKind: ExportKind, author, description = "", tags = newSeq[string]()): string = 
+proc formatTemplate*(style: ImGuiStyle, name: string, exportKind: ExportKind, author, description, forkedFrom = "", tags = newSeq[string]()): string = 
   result = 
     case exportKind
     of Cpp:
@@ -683,7 +683,7 @@ proc formatTemplate*(style: ImGuiStyle, name: string, exportKind: ExportKind, au
     of ImStyle:
       &"# {name} style{authorText} from ImThemes\n"
     of Publish:
-      &"name = \"{name}\"\nauthor = github-username\ndescription = \"{description}\"\ntags = {($tags)[1..^1]}\ndate = pr-merge-date\n"
+      &"name = \"{name}\"\nauthor = \"github-username\"\ndescription = \"{description}\"\nforkedFrom = \"{forkedFrom}\"\ntags = {($tags)[1..^1]}\ndate = \"pr-merge-date\"\n"
 
   if exportKind == Publish:
     body.add &"[themes.style]\n"
@@ -757,7 +757,7 @@ proc formatTemplate*(style: ImGuiStyle, name: string, exportKind: ExportKind, au
   of ImStyle:
     result.add body
 
-proc drawExportTabs*(app: var App, style: ImGuiStyle, name: string, author = "", description = "", tags = newSeq[string](), tabs = {Nim, Cpp, ImStyle}, availDiff = igVec2(0, 0)) = 
+proc drawExportTabs*(app: var App, style: ImGuiStyle, name: string, author, description, forkedFrom = "", tags = newSeq[string](), tabs = {Nim, Cpp, ImStyle}, availDiff = igVec2(0, 0)) = 
   if igBeginTabBar("##exportTabs"):      
     var currentText = ""
     let avail = igGetContentRegionAvail() - availDiff
@@ -790,7 +790,7 @@ proc drawExportTabs*(app: var App, style: ImGuiStyle, name: string, author = "",
       if app.currentExportTab != 2: app.copied = false
       app.currentExportTab = 2
 
-      currentText = style.formatTemplate(name, Publish, author, description, tags)
+      currentText = style.formatTemplate(name, Publish, author, description, forkedFrom, tags)
 
       igInputTextMultiline("##publish", cstring currentText, uint currentText.len, avail, ImGuiInputTextFlags.ReadOnly)
       igEndTabItem()
@@ -801,12 +801,12 @@ proc drawExportTabs*(app: var App, style: ImGuiStyle, name: string, author = "",
 
     igEndTabBar()
 
-proc drawExportThemeModal*(app: var App, style: ImGuiStyle, name: string, author = "", description = "", tags = newSeq[string](), tabs = {Nim, Cpp, ImStyle}) = 
+proc drawExportThemeModal*(app: var App, style: ImGuiStyle, name: string, author, description, forkedFrom = "", tags = newSeq[string](), tabs = {Nim, Cpp, ImStyle}) = 
   let unusedOpen = true
   igSetNextWindowPos(igGetMainViewport().getCenter(), Always, igVec2(0.5f, 0.5f))
   igSetNextWindowSize(igVec2(500, 500))
   if igBeginPopupModal(cstring &"{name} Theme###exportTheme", unusedOpen.unsafeAddr, flags = ImGuiWindowFlags.NoResize):
-    app.drawExportTabs(style, name, author, description, tags, tabs)
+    app.drawExportTabs(style, name, author, description, forkedFrom, tags, tabs)
     igEndPopup()
 
 proc drawFilters*(app: var App, filters: var seq[string], authorFilter = "", filterTags = @["starred"] & tags, addBtnRight = false): bool {.discardable.} = 
@@ -882,3 +882,14 @@ proc drawFilters*(app: var App, filters: var seq[string], authorFilter = "", fil
       igEndMenu()
 
     igEndPopup()
+
+proc switchTheme*(app: var App, themeIndex: int) = 
+  app.editing = false
+  app.currentTheme = themeIndex
+  app.editSplitterSize1.a = 0f
+  app.editSplitterSize2.b = 0f
+  app.themeStyle = app.prefs["themes"][themeIndex]["style"].styleFromToml()
+  if not app.saved and "prevStyle" in app.prefs["themes"][themeIndex]:
+    app.prevthemeStyle = app.prefs["themes"][themeIndex]["prevStyle"].styleFromToml()
+  else:
+    app.prevThemeStyle = app.themeStyle
