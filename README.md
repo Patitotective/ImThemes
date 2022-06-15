@@ -1,6 +1,8 @@
 # <img title="Icon" width=50 height=50 src="https://github.com/Patitotective/ImThemes/blob/main/assets/icon.png"></img> ImThemes
 Dear ImGui themes editor and browser.
 
+![Browse](https://user-images.githubusercontent.com/79225325/173915188-d17f8246-9ded-4188-a6fc-b8ebce811f07.png)
+
 ## Features
 - Theme editor.
 - Real time theme preview.
@@ -11,6 +13,8 @@ Dear ImGui themes editor and browser.
 - Star your favorite themes.
 - Sort themes alphabetically and by published date.
 - Fork themes.
+
+![Edit](https://user-images.githubusercontent.com/79225325/173915196-7f493bb9-4aa6-4929-8e81-1037ccd8f3aa.png)
 
 ## Publish Your Theme
 - Click the _Publish_ button, fill the name and description, add tags, click _Next_ and copy the TOML entry.  
