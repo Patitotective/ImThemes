@@ -11,6 +11,7 @@ var fetched = false
 var fetchThread: Thread[string]
 
 proc fetch(path: string) = 
+  # TODO add error handling
   newHttpClient().downloadFile(feedURL, path)
   fetched = true
 
