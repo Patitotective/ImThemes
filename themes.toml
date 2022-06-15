@@ -821,7 +821,7 @@
     ModalWindowDimBg = "rgba(204, 204, 204, 0.3499999940395355)"
 [[themes]]
   name = "Visual Studio"
-  author = "github-username"
+  author = "MomoDeve"
   description = "Visual Studio-like theme."
   tags = ["dark", "blue", "gray"]
   date = 2020-08-08

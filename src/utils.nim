@@ -35,6 +35,7 @@ type
     cache*: TomlValueRef # Settings cache
     config*: TomlValueRef # Prefs table
     lastClipboard*: string
+    showFramerate*: bool
 
     # Publish popup
     themeDesc*: string

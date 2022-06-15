@@ -109,15 +109,13 @@ proc drawMainMenuBar(app: var App) =
 
   if igBeginMainMenuBar():
     if igBeginMenu("File"):
-      igMenuItem("Preferences " & FA_Cog, "Ctrl+P", openPrefs.addr)
+      # igMenuItem("Preferences " & FA_Cog, "Ctrl+P", openPrefs.addr)
       if igMenuItem("Quit " & FA_Times, "Ctrl+Q"):
         app.win.setWindowShouldClose(true)
       igEndMenu()
 
     if igBeginMenu("Edit"):
-      if igMenuItem("Hello"):
-        echo "Hello"
-
+      igMenuItem("Show framerate", nil, app.showFramerate.addr)
       igEndMenu()
 
     if igBeginMenu("About"):
@@ -190,7 +188,8 @@ proc drawMain(app: var App) = # Draw the main window
   igSetNextWindowSize(viewport.workSize)
 
   if igBegin(cstring app.config["name"].getString(), flags = makeFlags(ImGuiWindowFlags.NoResize, ImGuiWindowFlags.NoBringToFrontOnFocus, NoDecoration, NoMove)):
-    igText(FA_Info & " Application average %.3f ms/frame (%.1f FPS)", 1000f / igGetIO().framerate, igGetIO().framerate)
+    if app.showFramerate:
+      igText(FA_Info & " Application average %.3f ms/frame (%.1f FPS)", 1000f / igGetIO().framerate, igGetIO().framerate)
     if app.currentView == 0:
       app.drawEditView()
     elif app.currentView == 1:
