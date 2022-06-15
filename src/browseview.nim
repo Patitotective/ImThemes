@@ -8,12 +8,26 @@ import utils, icons
 const feedURL = "https://github.com/Patitotective/ImThemes/blob/main/themes.toml?raw=true"
 
 var fetched = false
-var fetchThread: Thread[string]
+var fetchError = ""
+var fetchFailed = false
+var fetchChannel: Channel[string]
 
 proc fetch(path: string) = 
-  # TODO add error handling
-  newHttpClient().downloadFile(feedURL, path)
-  fetched = true
+  var client = newHttpClient(timeout = 10_000)
+  try:
+    client.downloadFile(feedURL, path)
+    fetched = true
+  except:
+    fetchFailed = true
+    fetchChannel.send(getCurrentExceptionMsg())
+  finally:
+    client.close()
+
+proc startFetch(app: var App) = 
+  fetchFailed = false
+  fetchError = ""
+  fetchChannel.open()
+  app.fetchThread.createThread(fetch, app.getCacheDir() / "themes.toml")
 
 proc getFeed(app: App): TomlTables = 
   result = app.feed
@@ -200,10 +214,11 @@ proc drawBrowsePreview(app: var App) =
   igPopStyleVar()
 
 proc drawBrowseView*(app: var App) = 
-  if not fetched and not fetchThread.running:
-    fetchThread.createThread(fetch, app.getCacheDir() / "themes.toml")
+  if not fetchFailed and not fetched and not app.fetchThread.running:
+    app.startFetch()
   elif fetched and app.feed.len == 0:
     app.feed = Toml.loadFile(app.getCacheDir() / "themes.toml", TomlValueRef)["themes"].getTables()
+    fetchChannel.close()
 
   let avail = igGetContentRegionAvail()
 
@@ -228,7 +243,19 @@ proc drawBrowseView*(app: var App) =
 
     igEndChild(); igSameLine()
     app.drawBrowsePreview()
+  elif fetchFailed:
+    if fetchError.len == 0:
+      fetchError = fetchChannel.tryRecv().msg
 
+    const text = "Error fetching " & feedURL
+    igCenterCursorX(max([igCalcTextSize(cstring text).x, igCalcTextSize(cstring fetchError).x]))
+    igCenterCursorY((igGetFrameHeight() * 2) + igCalcTextSize(cstring fetchError).y + (igGetStyle().itemSpacing.y * 2))
+    igBeginGroup()
+    igText(cstring text)
+    igText(cstring fetchError)
+    if igButton("Retry"):
+      app.startFetch()
+    igEndGroup()
   else:
     igCenterCursor(ImVec2(x: 15 * 2, y: (15 + igGetStyle().framePadding.y) * 2))
     igSpinner("##spinner", 15, 6, igGetColorU32(ButtonHovered))

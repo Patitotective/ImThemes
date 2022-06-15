@@ -65,6 +65,7 @@ type
     sizesBuffer*, colorsBuffer*: string
 
     # Browse view
+    fetchThread*: Thread[string]
     feed*: TomlTables
     browseSplitterSize*: tuple[a, b: float32]
     browseCurrentTheme*: TomlTableRef
@@ -626,14 +627,15 @@ proc `<`*(date1, date2: TomlDateTime): bool =
   elif date1.date.get().day < date2.date.get().day:
     result = true
   # By time
-  elif date1.time.get().hour < date2.time.get().hour:
-    result = true
-  elif date1.time.get().minute < date2.time.get().minute:
-    result = true
-  elif date1.time.get().second < date2.time.get().second:
-    result = true
-  elif date1.time.get().subsecond < date2.time.get().subsecond:
-    result = true
+  elif date1.time.isSome() and date2.time.isSome():
+    if date1.time.get().hour < date2.time.get().hour:
+      result = true
+    elif date1.time.get().minute < date2.time.get().minute:
+      result = true
+    elif date1.time.get().second < date2.time.get().second:
+      result = true
+    elif date1.time.get().subsecond < date2.time.get().subsecond:
+      result = true
 
 proc strOnlyFields*[T: object](obj: T): string = 
   result = $typeof obj

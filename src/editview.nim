@@ -5,7 +5,7 @@ import nimgl/imgui
 
 import editor, utils
 
-proc isThemeReadOnly(app: App, index = app.currentTheme): bool = 
+template isThemeReadOnly(app: App, index: int): bool = 
   if "readonly" in app.prefs["themes"][index]:
     app.prefs["themes"][index]["readonly"].getBool()
   else:
@@ -174,7 +174,7 @@ proc drawThemesList(app: var App) =
 
   igSameLine()
   
-  let readOnly = app.isThemeReadOnly()
+  let readOnly = app.isThemeReadOnly(app.currentTheme)
   var editBtnDisabled = false # When editing editBtn means discardBtn and SaveBtn
 
   if readOnly or (app.editing and app.saved): # Cannot edit a read-only theme or an already saved theme
@@ -285,7 +285,7 @@ proc drawEditView*(app: var App) =
       igSetNextWindowPos(igGetWindowPos())
       igSetNextWindowSize(igGetWindowSize())
 
-      app.drawStylePreview(app.prefs["themes"][app.currentTheme]["name"].getString() & (if app.isThemeReadOnly(): " (Read-Only)" else: ""), app.themeStyle)
+      app.drawStylePreview(app.prefs["themes"][app.currentTheme]["name"].getString() & (if app.isThemeReadOnly(app.currentTheme): " (Read-Only)" else: ""), app.themeStyle)
 
     igEndChild(); igSameLine()
 
