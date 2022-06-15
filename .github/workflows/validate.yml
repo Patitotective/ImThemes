@@ -15,4 +15,5 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: iffy/install-nim@v4.1.1
+      - run: nimble install -d -y
       - run: nim c -r validate_themes.nim
