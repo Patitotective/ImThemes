@@ -76,7 +76,7 @@ proc check(): seq[tuple[idx: int, name: string]] =
     else: valid = false
 
     if not valid:
-      result.add((e, theme["name"].getString()))
+      result.add((e, if "name" in theme: theme["name"].getString() else: ""))
 
 when isMainModule:
   let result = check()

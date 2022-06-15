@@ -108,6 +108,8 @@ proc drawPublishThemeModal(app: var App) =
       if igButton("Next"): app.publishScreen = 1
 
     else:
+      let theme = app.prefs["themes"][app.currentTheme]
+
       igText("Copy the following text and paste it at the end of")
       igURLText("https://github.com/Patitotective/ImThemes/edit/main/themes.toml", "themes.toml", sameLineBefore = false)
       igText(" at the root of the ImThemes GitHub")
@@ -117,8 +119,9 @@ proc drawPublishThemeModal(app: var App) =
       app.drawExportTabs(
         app.themeStyle, 
         app.themeName.cleanString(), 
+        author = if "author" in theme: theme["author"].getString() else: "", 
         description = app.themeDesc.cleanString(), 
-        forkedFrom = if "forkedFrom" in app.prefs["themes"][app.currentTheme]: app.prefs["themes"][app.currentTheme]["forkedFrom"].getString() else: "", 
+        forkedFrom = if "forkedFrom" in theme: theme["forkedFrom"].getString() else: "", 
         tags = app.publishFilters, 
         tabs = {Publish}, 
         availDiff = igVec2(0, igGetFrameHeight() + style.itemSpacing.y)
@@ -142,17 +145,20 @@ proc drawThemesList(app: var App) =
       let selected = e == app.currentTheme
       let name = cstring theme["name"].getString() & (if app.isThemeReadOnly(e): " (Read-Only)" else: "")
 
-      if igSelectable(name, selected, flags = ImGuiSelectableFlags.DontClosePopups) and (not selected or (selected and app.editing)):
+      if igSelectable(name, selected) and (not selected or (selected and app.editing)):
         app.switchTheme(e)
 
-      if not app.isThemeReadOnly(e) and igBeginPopupContextItem():
+      if not app.isThemeReadOnly(e) and igIsItemHovered() and (igIsMouseDoubleClicked(ImGuiMouseButton.Left) or igIsMouseClicked(ImGuiMouseButton.Right)):
         if not selected: app.switchTheme(e)
-        if igMenuItem("Rename"):
-          app.themeName = newString(64, app.prefs["themes"][app.currentTheme]["name"].getString())
-          openRename = true
-        if igMenuItem("Delete"):
-          openDelete = true
-        igEndPopup()
+        igOpenPopup("contextMenu")
+
+    if igBeginPopup("contextMenu"):
+      if igMenuItem("Rename"):
+        app.themeName = newString(64, app.prefs["themes"][app.currentTheme]["name"].getString())
+        openRename = true
+      if igMenuItem("Delete"):
+        openDelete = true
+      igEndPopup()
 
     if openRename: igOpenPopup("Edit Name")
     if openDelete: igOpenPopup("Delete Theme")
@@ -220,6 +226,8 @@ proc drawThemesList(app: var App) =
     if igButton("Publish"):
       app.themeName = newString(64, app.prefs["themes"][app.currentTheme]["name"].getString())
       app.themeDesc = newString(128)
+      app.publishScreen = 0
+      app.publishFilters.reset()
       igOpenPopup("Publish Theme")
 
   if readOnly:

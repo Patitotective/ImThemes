@@ -683,7 +683,16 @@ proc formatTemplate*(style: ImGuiStyle, name: string, exportKind: ExportKind, au
     of ImStyle:
       &"# {name} style{authorText} from ImThemes\n"
     of Publish:
-      &"name = \"{name}\"\nauthor = \"github-username\"\ndescription = \"{description}\"\nforkedFrom = \"{forkedFrom}\"\ntags = {($tags)[1..^1]}\ndate = \"pr-merge-date\"\n"
+      let forkText = 
+        if forkedFrom.len > 0:
+          &"forkedFrom = \"{forkedFrom}\"\n"
+        else: ""
+
+      let authorText = 
+        if author.len > 0: author
+        else: "github-username"
+
+      &"name = \"{name}\"\nauthor = \"{authorText}\"\ndescription = \"{description}\"\n{forkText}tags = {($tags)[1..^1]}\ndate = \"pr-merge-date\"\n"
 
   if exportKind == Publish:
     body.add &"[themes.style]\n"
@@ -725,7 +734,8 @@ proc formatTemplate*(style: ImGuiStyle, name: string, exportKind: ExportKind, au
 
       body.add "\n"
 
-  body.add "\n"
+  if exportKind != Publish:
+    body.add "\n"
 
   if exportKind == ImStyle:
     body.add "[colors]\n"
