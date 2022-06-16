@@ -1,5 +1,6 @@
 import std/[strutils, os]
 
+import downit
 import chroma
 import imstyle
 import niprefs
@@ -116,6 +117,8 @@ proc drawMainMenuBar(app: var App) =
 
     if igBeginMenu("Edit"):
       igMenuItem("Show framerate", nil, app.showFramerate.addr)
+      if igMenuItem(cstring "Refresh Feed " & FA_Refresh) and not app.downloader.downloading("feed"):
+        app.downloader.downloadAgain("feed")
       igEndMenu()
 
     if igBeginMenu("About"):
@@ -302,6 +305,7 @@ proc initApp(config: TomlValueRef): App =
   )
   result.initPrefs()
   result.initConfig(result.config["settings"])
+  result.downloader = initDownloader(result.getCacheDir())
 
   result.switchTheme(int result.prefs["currentTheme"].getInt())
   result.currentSort = int result.prefs["currentSort"].getInt()

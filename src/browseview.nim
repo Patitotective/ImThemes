@@ -1,33 +1,10 @@
-import std/[httpclient, algorithm, strformat, sequtils, strutils, random, math, os]
+import std/[algorithm, strformat, sequtils, strutils, random, math]
+import downit
 import niprefs
 import imstyle
 import nimgl/imgui
 
 import utils, icons
-
-const feedURL = "https://github.com/Patitotective/ImThemes/blob/main/themes.toml?raw=true"
-
-var fetched = false
-var fetchError = ""
-var fetchFailed = false
-var fetchChannel: Channel[string]
-
-proc fetch(path: string) = 
-  var client = newHttpClient(timeout = 10_000)
-  try:
-    client.downloadFile(feedURL, path)
-    fetched = true
-  except:
-    fetchFailed = true
-    fetchChannel.send(getCurrentExceptionMsg())
-  finally:
-    client.close()
-
-proc startFetch(app: var App) = 
-  fetchFailed = false
-  fetchError = ""
-  fetchChannel.open()
-  app.fetchThread.createThread(fetch, app.getCacheDir() / "themes.toml")
 
 proc getFeed(app: App): TomlTables = 
   result = app.feed
@@ -214,11 +191,12 @@ proc drawBrowsePreview(app: var App) =
   igPopStyleVar()
 
 proc drawBrowseView*(app: var App) = 
-  if not fetchFailed and not fetched and not app.fetchThread.running:
-    app.startFetch()
-  elif fetched and app.feed.len == 0:
-    app.feed = Toml.loadFile(app.getCacheDir() / "themes.toml", TomlValueRef)["themes"].getTables()
-    fetchChannel.close()
+  app.downloader.update()
+
+  if not app.downloader.exists("feed"):
+    app.downloader.download("https://github.com/Patitotective/ImThemes/blob/main/themes.toml?raw=true", "themes.toml", "feed")
+  elif app.downloader.downloaded("feed") and app.feed.len == 0:
+    app.feed = Toml.loadFile(app.downloader.getPath("feed").get(), TomlValueRef)["themes"].getTables()
 
   let avail = igGetContentRegionAvail()
 
@@ -233,7 +211,7 @@ proc drawBrowseView*(app: var App) =
   if app.browseSplitterSize.a == 0:
     app.browseSplitterSize = (avail.x * 0.2f, avail.x * 0.8f)
 
-  if fetched and app.feed.len > 0:
+  if app.downloader.downloaded("feed"):
     igSplitter(true, 8, app.browseSplitterSize.a.addr, app.browseSplitterSize.b.addr, 200, 800, avail.y)
     # List
     if igBeginChild("##browseList", igVec2(app.browseSplitterSize.a, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
@@ -243,19 +221,27 @@ proc drawBrowseView*(app: var App) =
 
     igEndChild(); igSameLine()
     app.drawBrowsePreview()
-  elif fetchFailed:
-    if fetchError.len == 0:
-      fetchError = fetchChannel.tryRecv().msg
 
-    const text = "Error fetching " & feedURL
-    igCenterCursorX(max([igCalcTextSize(cstring text).x, igCalcTextSize(cstring fetchError).x]))
-    igCenterCursorY((igGetFrameHeight() * 2) + igCalcTextSize(cstring fetchError).y + (igGetStyle().itemSpacing.y * 2))
-    igBeginGroup()
-    igText(cstring text)
-    igText(cstring fetchError)
-    if igButton("Retry"):
-      app.startFetch()
-    igEndGroup()
-  else:
+  elif app.downloader.downloading("feed"):
     igCenterCursor(ImVec2(x: 15 * 2, y: (15 + igGetStyle().framePadding.y) * 2))
     igSpinner("##spinner", 15, 6, igGetColorU32(ButtonHovered))
+
+  elif (let errorMsg = app.downloader.getErrorMsg("feed"); errorMsg.isSome):
+    let text = "Error fetching browse feed: \n" & errorMsg.get().splitLines()[0] & "\n"
+
+    igCenterCursorX(igCalcTextSize(cstring text).x)
+    igCenterCursorY(igGetFrameHeight() + igCalcTextSize(cstring text).y + igGetStyle().itemSpacing.y)
+    igBeginGroup()
+    igTextWrapped(cstring text)
+
+    if igIsItemHovered():
+      igSetTooltip("Right click to copy full error")
+
+    if igBeginPopupContextItem("menu"):
+      if igMenuItem("Copy"):
+        igsetClipboardText(cstring errorMsg.get())
+      igEndPopup()
+
+    if igButton("Retry") and not app.downloader.downloading("feed"):
+      app.downloader.downloadAgain("feed")
+    igEndGroup()

@@ -11,10 +11,11 @@ namedBin["main"] = "ImThemes"
 requires "nim >= 1.6.2"
 requires "nake >= 1.9.4"
 requires "nimgl >= 1.3.2"
+requires "downit >= 0.1.0"
 requires "chroma >= 0.2.4"
+requires "imstyle >= 0.3.2"
 requires "niprefs >= 0.3.3"
 requires "stb_image >= 2.5"
-requires "https://github.com/Patitotective/ImStyle >= 0.3.2"
 
 import std/[strformat, os]
 

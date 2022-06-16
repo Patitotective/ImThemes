@@ -1,4 +1,5 @@
 import std/[typetraits, enumutils, strformat, strutils, macros, times, math, os]
+import downit
 import chroma
 import imstyle
 import niprefs
@@ -36,6 +37,7 @@ type
     config*: TomlValueRef # Prefs table
     lastClipboard*: string
     showFramerate*: bool
+    downloader*: Downloader
 
     # Publish popup
     themeDesc*: string
