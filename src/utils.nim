@@ -319,7 +319,7 @@ proc igURLText*(url: string, text = "", sameLineBefore, sameLineAfter = true) =
     igSetTooltip(cstring url & " " & FA_ExternalLink)
 
 proc igCalcFrameSize*(text: string): ImVec2 = 
-  igCalcTextSize(cstring text) + igGetStyle().framePadding
+  igCalcTextSize(cstring text) + (igGetStyle().framePadding * 2)
 
 # https://github.com/ocornut/imgui/issues/589#issuecomment-238358689
 proc igIsItemActivePreviousFrame*(): bool = 
@@ -904,7 +904,10 @@ proc switchTheme*(app: var App, themeIndex: int) =
   app.editSplitterSize1.a = 0f
   app.editSplitterSize2.b = 0f
   app.themeStyle = app.prefs["themes"][themeIndex]["style"].styleFromToml()
-  if not app.saved and "prevStyle" in app.prefs["themes"][themeIndex]:
+  if "prevStyle" notin app.prefs["themes"][themeIndex]:
+    app.prefs["themes"][themeIndex]["prevStyle"] = app.prefs["themes"][themeIndex]["style"]
+
+  if not app.saved:
     app.prevthemeStyle = app.prefs["themes"][themeIndex]["prevStyle"].styleFromToml()
   else:
     app.prevThemeStyle = app.themeStyle

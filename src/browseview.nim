@@ -74,9 +74,9 @@ proc drawBrowseList(app: var App) =
       
       igTextWithEllipsis(
         if theme["description"].getString().len > 0: theme["description"].getString() else: "No description.", 
-        maxWidth = igGetContentRegionAvail().x - (style.itemSpacing.x + igCalcFrameSize(starText).x + style.windowPadding.x)
+        maxWidth = igGetContentRegionAvail().x - (style.itemSpacing.x + igCalcFrameSize(starText).x)
       )
-      igSameLine(); igCenterCursorX(igCalcFrameSize(starText).x + style.windowPadding.x, align = 1)
+      igSameLine(); igCenterCursorX(igCalcFrameSize(starText).x, align = 1)
       
       if igButton(cstring starText & "##" & $e):
         if starred:

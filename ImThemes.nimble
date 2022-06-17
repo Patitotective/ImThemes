@@ -5,6 +5,7 @@ author           = "Patitotective"
 description      = "A new awesome Dear ImGui application"
 license          = "MIT"
 namedBin["main"] = "ImThemes"
+backend          = "cpp"
 
 # Dependencies
 
