@@ -1,6 +1,8 @@
 # <img title="Icon" width=50 height=50 src="https://github.com/Patitotective/ImThemes/blob/main/assets/icon.png"></img> ImThemes
 Dear ImGui themes editor and browser.
 
+**ImThemes is not ready to be installed.**
+
 ![Browse](https://user-images.githubusercontent.com/79225325/173915188-d17f8246-9ded-4188-a6fc-b8ebce811f07.png)
 
 ## Features
