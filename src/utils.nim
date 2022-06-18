@@ -60,7 +60,7 @@ type
     # Preview window
     previewBuffer*: string
     previewValuesOffset*: int32
-    previewCol*: array[4, float32]
+    previewCol*, previewCol2*: array[4, float32]
     previewValues*: array[90, float32]
     previewProgress*, previewProgressDir*: float32
     previewSlider*, previewRefreshTime*, previewPhase*: float32
@@ -512,6 +512,7 @@ proc drawStylePreview*(app: var App, name: string, style: ImGuiStyle) =
         igInputTextWithHint("##input", "Type here...", cstring app.previewBuffer, 64)
 
         igColorEdit4("Color Edit", app.previewCol)
+        igColorEdit4("Color Edit HSV", app.previewCol2, makeFlags(PickerHueWheel, DisplayHSV))
 
         if igBeginChild("Child", igVec2(0, 150), true):
           for i in 1..50:
