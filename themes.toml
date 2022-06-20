@@ -6,7 +6,7 @@
 #   description = "Sublime-like theme" # Short description
 #   tags = ["light", "dark", "red", "blue", "green", "yellow", "orange", "purple", "magenta", "pink", "gray", "high-contrast", "rounded"] # These are all the valid tags, check https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color_keywords
 #   date = 2022-03-30 # Publish date. You don't need to add it manually, it will get when the pull request gets merged.
-#   [theme.style]
+#   [themes.style]
 #     alpha = 1.0 # Float. Global alpha applies to everything in Dear ImGui.
 #     disabledAlpha = 0.6 # Float. Additional alpha multiplier applied by BeginDisabled(). Multiply over current value of Alpha.
 #     windowPadding = [8.0, 8.0] # ImVec2, Padding within a window
@@ -1551,7 +1551,8 @@
   name = "Soft Cherry"
   author = "Patitotective"
   description = "A cuter version of Cherry."
-  tags = ["high-contrast", "magenta"]
+  tags = ["rounded", "magenta"]
+  forkedFrom = "Cherry"
   date = 2022-06-18
   [themes.style]
     alpha = 1.0

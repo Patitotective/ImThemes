@@ -1,8 +1,8 @@
 # Package
 
-version          = "0.3.0"
+version          = "0.1.0"
 author           = "Patitotective"
-description      = "A new awesome Dear ImGui application"
+description      = "ImThemes is a Dear ImGui theme designer and browser written in Nim"
 license          = "MIT"
 namedBin["main"] = "ImThemes"
 backend          = "cpp"
@@ -15,7 +15,7 @@ requires "nimgl >= 1.3.2"
 requires "downit >= 0.1.0"
 requires "chroma >= 0.2.4"
 requires "imstyle >= 0.3.2"
-requires "niprefs >= 0.3.3"
+requires "niprefs >= 0.3.4"
 requires "stb_image >= 2.5"
 
 import std/[strformat, os]
@@ -26,10 +26,10 @@ let flags = getEnv("FLAGS")
 
 task buildApp, "Build the application":
   exec "nimble install -d -y"
-  exec &"nim cpp -d:release --app:gui --out:{outPath} --cpu:{arch} {flags} main.nim"
+  exec fmt"nim cpp -d:release --app:gui --out:{outPath} --cpu:{arch} {flags} main.nim"
 
 task runApp, "Build and run the application":
   exec "nimble buildApp"
 
-  exec &"./{outPath}"
+  exec fmt"./{outPath}"
 

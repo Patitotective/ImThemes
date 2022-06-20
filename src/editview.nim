@@ -246,7 +246,6 @@ proc drawThemesList(app: var App) =
 
 proc drawEditView*(app: var App) = 
   const minSize = 300
-  let style = igGetStyle()
   let avail = igGetContentRegionAvail()
 
   # Keep splitter proportions on resize

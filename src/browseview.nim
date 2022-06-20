@@ -36,12 +36,12 @@ proc getFeed(app: App): TomlTables =
   else: raise newException(ValueError, "Invalid sort value " & $app.currentSort)
 
 proc drawBrowseListHeader(app: var App) = 
-  let style = igGetStyle()
-
   igInputTextWithHint("##search", "Search...", cstring app.browseBuffer, 64); igSameLine()
+
   if igButton(FA_Sort):
     igOpenPopup("sort")
   igSameLine()
+
   app.drawFilters(app.filters, app.authorFilter)
 
   if igBeginPopup("sort"):
@@ -55,20 +55,16 @@ proc drawBrowseList(app: var App) =
   let style = igGetStyle()
   let feed = app.getFeed()
 
-  if app.browseCurrentTheme.len == 0:
-    randomize()
-    app.browseCurrentTheme = feed[rand(feed.high)]
-
   for e, theme in feed:
     if app.browseBuffer.passFilter(theme["name"].getString()):
       let starred = theme["name"] in app.prefs["starred"]
       let starText = if starred: FA_Star else: FA_StarO
       let selected = theme["name"] == app.browseCurrentTheme["name"]
-      if igSelectable(cstring "##" & $e, selected, size = igVec2(0, igGetFrameHeight() + app.bigFont.fontSize + (style.framePadding.y * 2)), flags = ImGuiSelectableFlags.AllowItemOverlap):
+      if igSelectable(cstring "##" & $e, selected, size = igVec2(0, igGetFrameHeight() + app.strongFont.fontSize + (style.framePadding.y * 2)), flags = ImGuiSelectableFlags.AllowItemOverlap):
         app.browseCurrentTheme = feed[e]
 
       igSameLine(); igBeginGroup()
-      app.bigFont.igPushFont()
+      app.strongFont.igPushFont()
       igText(cstring theme["name"].getString())
       igPopFont()
       
@@ -116,75 +112,73 @@ proc drawBrowsePreview(app: var App) =
   let prevWindowPadding = igGetStyle().windowPadding
   igPushStyleVar(WindowPadding, igVec2(150, 20))
   if igBeginChild("##browsePreview", igVec2(app.browseSplitterSize.b, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
-    if app.browseCurrentTheme.len > 0:
+    let theme = app.browseCurrentTheme
+    let themeStyle = theme["style"].styleFromToml()
 
-      let theme = app.browseCurrentTheme
-      let themeStyle = theme["style"].styleFromToml()
+    app.strongFont.igPushFont()
+    igText(cstring theme["name"].getString())
+    igPopFont()
+  
+    igSameLine()
 
-      app.bigFont.igPushFont()
-      igText(cstring theme["name"].getString())
-      igPopFont()
-    
+    igText("By ")
+    if igClickableText(theme["author"].getString(), sameLineAfter = false):
+      app.authorFilter = theme["author"].getString()
+
+    if "forkedFrom" in theme:
       igSameLine()
 
-      igText("By ")
-      if igClickableText(theme["author"].getString(), sameLineAfter = false):
-        app.authorFilter = theme["author"].getString()
+      igText("forked from ")
+      if igClickableText(theme["forkedFrom"].getString(), sameLineAfter = false):
+        # Since there can be no themes with the same name index 0 is enough
+        app.browseCurrentTheme = app.feed.filterIt(it["name"] == theme["forkedFrom"])[0]
 
-      if "forkedFrom" in theme:
-        igSameLine()
+    igTextWrapped(cstring(if theme["description"].getString().len > 0: theme["description"].getString() else: "No description provided."))
 
-        igText("forked from ")
-        if igClickableText(theme["forkedFrom"].getString(), sameLineAfter = false):
-          # Since there can be no themes with the same name index 0 is enough
-          app.browseCurrentTheme = app.feed.filterIt(it["name"] == theme["forkedFrom"])[0]
+    if igButton("Get it"):
+      app.copied = false
+      igOpenPopup("###exportTheme")
 
-      igTextWrapped(cstring(if theme["description"].getString().len > 0: theme["description"].getString() else: "No description provided."))
-
-      if igButton("Get it"):
-        app.copied = false
-        igOpenPopup("###exportTheme")
-
-      igSameLine()
-      if igButton("Fork it"):
-        igOpenPopup("Fork Theme")
-      
-      if theme["tags"].len > 0:
-        igSameLine()
+    igSameLine()
+    if igButton("Fork it"):
+      igOpenPopup("Fork Theme")
     
-        igPushStyleVar(FrameRounding, 0f)
-        igPushStyleColor(ImGuiCol.Button, igGetColorU32(ImGuiCol.Tab))
-        igPushStyleColor(ImGuiCol.ButtonHovered, igGetColorU32(ImGuiCol.TabHovered))
-        igPushStyleColor(ImGuiCol.ButtonActive, igGetColorU32(ImGuiCol.TabActive))
+    if theme["tags"].len > 0:
+      igSameLine()
+  
+      igPushStyleVar(FrameRounding, 0f)
+      igPushStyleColor(ImGuiCol.Button, igGetColorU32(ImGuiCol.Tab))
+      igPushStyleColor(ImGuiCol.ButtonHovered, igGetColorU32(ImGuiCol.TabHovered))
+      igPushStyleColor(ImGuiCol.ButtonActive, igGetColorU32(ImGuiCol.TabActive))
 
-        let themesWidth = 
-          theme["tags"].mapIt(igCalcTextSize(cstring it.getString().capitalizeAscii()).x).sum() + 
-          (style.framePadding.x * float32(theme["tags"].len * 2)) + 
-          (style.itemSpacing.x * float32 theme["tags"].len-1)
+      let themesWidth = 
+        theme["tags"].mapIt(igCalcTextSize(cstring it.getString().capitalizeAscii()).x).sum() + 
+        (style.framePadding.x * float32(theme["tags"].len * 2)) + 
+        (style.itemSpacing.x * float32 theme["tags"].len-1)
 
-        igCenterCursorX(themesWidth, align = 1)
-        for e, tag in theme["tags"].getArray():
-          if igButton(cstring tag.getString().capitalizeAscii()) and tag.getString() notin app.filters:
-            app.filters.add tag.getString()
-          
-          if e < theme["tags"].len-1:
-            igSameLine()
+      igCenterCursorX(themesWidth, align = 1)
+      for e, tag in theme["tags"].getArray():
+        if igButton(cstring tag.getString().capitalizeAscii()) and tag.getString() notin app.filters:
+          app.filters.add tag.getString()
+        
+        if e < theme["tags"].len-1:
+          igSameLine()
 
-        igPopStyleColor(3)
-        igPopStyleVar()
-
-      if igBeginChild("##preview"):
-        igSetNextWindowPos(igGetWindowPos())
-        igSetNextWindowSize(igGetWindowSize())
-
-        app.drawStylePreview(theme["name"].getString(), themeSTyle)
-      
-      igEndChild()
-
-      igPushStyleVar(WindowPadding, prevWindowPadding)
-      app.drawExportThemeModal(themeStyle, theme["name"].getString(), theme["author"].getString())
-      app.drawForkThemeModal(theme)
+      igPopStyleColor(3)
       igPopStyleVar()
+
+    if igBeginChild("##preview"):
+      igSetNextWindowPos(igGetWindowPos())
+      igSetNextWindowSize(igGetWindowSize())
+
+      app.drawStylePreview(theme["name"].getString(), themeSTyle)
+    
+    igEndChild()
+
+    igPushStyleVar(WindowPadding, prevWindowPadding)
+    app.drawExportThemeModal(themeStyle, theme["name"].getString(), theme["author"].getString())
+    app.drawForkThemeModal(theme)
+    igPopStyleVar()
 
 
   igEndChild()
@@ -197,6 +191,8 @@ proc drawBrowseView*(app: var App) =
     app.downloader.download("https://github.com/Patitotective/ImThemes/blob/main/themes.toml?raw=true", "themes.toml", "feed")
   elif app.downloader.downloaded("feed") and app.feed.len == 0:
     app.feed = Toml.loadFile(app.downloader.getPath("feed").get(), TomlValueRef)["themes"].getTables()
+    randomize()
+    app.browseCurrentTheme = app.feed[rand(app.feed.high)]
 
   let avail = igGetContentRegionAvail()
 

@@ -31,7 +31,7 @@ type
 
   App* = object
     win*: GLFWWindow
-    font*, bigFont*, sidebarIconFont*: ptr ImFont
+    font*, strongFont*, sidebarIconFont*: ptr ImFont
     prefs*: Prefs
     cache*: TomlValueRef # Settings cache
     config*: TomlValueRef # Prefs table
@@ -68,14 +68,11 @@ type
     sizesBuffer*, colorsBuffer*: string
 
     # Browse view
-    fetchThread*: Thread[string]
     feed*: TomlTables
     browseSplitterSize*: tuple[a, b: float32]
     browseCurrentTheme*: TomlTableRef
-    browseThemeStyle*: ImGuiStyle
     browseBuffer*: string
     currentSort*: int
-    # filters*: array[13, bool]
     filters*: seq[string]
     authorFilter*: string
 
@@ -288,7 +285,6 @@ proc igAddUnderLine*(col: uint32) =
   igGetWindowDrawList().addLine(min, max, col, 1f)
 
 proc igClickableText*(text: string, sameLineBefore, sameLineAfter = true): bool = 
-  let style = igGetStyle()
   if sameLineBefore: igSameLine(0, 0)
 
   igPushStyleColor(ImGuiCol.Text, parseHtmlColor("#4296F9").igVec4())

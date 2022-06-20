@@ -1,14 +1,14 @@
 import std/[tables, sugar]
 import niprefs
 
-# FIXME https://github.com/status-im/nim-toml-serialization/issues/46
 const configPath = "config.toml"
-let config {.compileTime.} = Toml.loadFile(configPath, TomlValueRef)
+let config {.compileTime.} = Toml.decode(static(slurp(configPath)), TomlValueRef)
 
 const resourcesPaths = [
   configPath, 
   config["iconPath"].getString(), 
   config["stylePath"].getString(), 
+  config["strongFontPath"].getString(), 
   config["fontPath"].getString(), 
   config["iconFontPath"].getString()
 ]

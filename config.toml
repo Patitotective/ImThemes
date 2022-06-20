@@ -1,6 +1,6 @@
 # App
 name = "ImThemes"
-comment = "ImThemes is a theme designer and browser for Dear ImGui"
+comment = "ImThemes is a Dear ImGui theme designer and browser written in Nim"
 version = "0.1.0"
 website = "https://github.com/Patitotective/ImThemes"
 authors = ["Patitotective <https://github.com/Patitotective>"]
@@ -14,7 +14,7 @@ iconPath = "assets/icon.png"
 svgIconPath = "assets/icon.svg"
 iconFontPath = "assets/forkawesome-webfont.ttf"
 fontPath = "assets/Karla-Regular.ttf"
-bigFontPath = "assets/Karla-Bold.ttf"
+strongFontPath = "assets/Karla-Bold.ttf"
 fontSize = 18.0
 
 # Window

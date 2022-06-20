@@ -297,9 +297,8 @@ proc initPrefs(app: var App) =
 
 proc initApp(config: TomlValueRef): App = 
   result = App(
-    config: config, 
+    config: config, cache: newTTable(), 
     currentView: -1, hoveredView: -1, currentTheme: -1, 
-    cache: newTTable(), browseCurrentTheme: new TomlTableRef, 
     sizesBuffer: newString(32), colorsBuffer: newString(32), previewBuffer: newString(64), browseBuffer: newString(64), 
     previewProgressDir: 1f, 
   )
@@ -361,7 +360,7 @@ proc main() =
 
   io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat(), config.addr, ranges[0].addr)
 
-  app.bigFont = io.fonts.igAddFontFromMemoryTTF(app.config["bigFontPath"].getData(), app.config["fontSize"].getFloat() + 2)
+  app.strongFont = io.fonts.igAddFontFromMemoryTTF(app.config["strongFontPath"].getData(), app.config["fontSize"].getFloat() + 2)
   io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat() + 2, config.addr, ranges[0].addr)
 
   app.sidebarIconFont = io.fonts.igAddFontFromMemoryTTF(app.config["iconFontPath"].getData(), app.config["fontSize"].getFloat() + 18, glyph_ranges = ranges[0].addr)

@@ -1,7 +1,5 @@
 # <img title="Icon" width=50 height=50 src="https://github.com/Patitotective/ImThemes/blob/main/assets/icon.png"></img> ImThemes
-Dear ImGui themes editor and browser.
-
-**ImThemes is not ready to be installed.**
+Dear ImGui theme designer and browser written in Nim
 
 ![Browse](https://user-images.githubusercontent.com/79225325/173915188-d17f8246-9ded-4188-a6fc-b8ebce811f07.png)
 
@@ -13,7 +11,7 @@ Dear ImGui themes editor and browser.
 - Filter by tags.
 - Filter by author.
 - Star your favorite themes.
-- Sort themes alphabetically and by published date.
+- Sort themes alphabetically and by publish date.
 - Fork themes.
 
 ![Edit](https://user-images.githubusercontent.com/79225325/173915196-7f493bb9-4aa6-4929-8e81-1037ccd8f3aa.png)
