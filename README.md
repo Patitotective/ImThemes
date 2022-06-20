@@ -38,7 +38,7 @@ Notes:
 - `author` and `date` will be added manually when merging the PR (you can add the `author` yourself as well).
 
 ## About
-- GitHub: https://github.com/Patitotective/ImTemplate.
+- GitHub: https://github.com/Patitotective/ImThemes.
 - Discord: https://discord.gg/as85Q4GnR6.
 - Icon Font: https://forkaweso.me (MIT).
 
