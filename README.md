@@ -16,6 +16,17 @@ Dear ImGui theme designer and browser written in Nim
 
 ![Edit](https://user-images.githubusercontent.com/79225325/173915196-7f493bb9-4aa6-4929-8e81-1037ccd8f3aa.png)
 
+## Installation
+Go to the [releases page](https://github.com/Patitotective/ImThemes/releases/latest) and download:
+- [ImThemes-0.1.0-amd64.AppImage](https://github.com/Patitotective/ImThemes/releases/latest/download/ImThemes-0.1.0-amd64.AppImage]) for Linux.
+- [ImThemes-0.1.0-amd64.exe](https://github.com/Patitotective/ImThemes/releases/latest/download/ImThemes-0.1.0-amd64.exe) for Windows.
+
+### Nimble
+You can also install it through nimble as a binary package.
+```sh
+nimble install https://github.com/Patitotective/ImThemes
+```
+
 ## Publish Your Theme
 - Click the _Publish_ button, fill the name and description, add tags, click _Next_ and copy the TOML entry.  
 - Paste the copied text at the end of [themes.toml](https://github.com/Patitotective/ImThemes/edit/main/themes.toml) (GitHub should fork it automatically for you).
