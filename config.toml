@@ -1,7 +1,7 @@
 # App
 name = "ImThemes"
 comment = "ImThemes is a Dear ImGui theme designer and browser written in Nim"
-version = "0.1.0"
+version = "0.1.1"
 website = "https://github.com/Patitotective/ImThemes"
 authors = ["Patitotective <https://github.com/Patitotective>"]
 categories = ["Utility"]
