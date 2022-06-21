@@ -32,7 +32,7 @@ proc buildWindows() =
   let outDir = fmt"{name}-{version}"
 
   createDir outDir
-  shell fmt"FLAGS=""--outdir:{outDir}"" nimble buildBin"
+  shell fmt"set FLAGS=""--outdir:{outDir}"" && nimble buildBin"
 
   for kind, path in walkDir(binDir):
     if kind == pcFile:
