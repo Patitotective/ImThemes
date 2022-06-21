@@ -1,28 +1,29 @@
-import std/[strformat, strutils, sequtils, os]
+import std/[strformat, sequtils, os]
 
 import nake
 import niprefs
 
-const
-  configPath = "config.niprefs"
-  desktop = """
-  [Desktop Entry]
-  Name=$name
-  Exec=AppRun
-  Comment=$comment
-  Icon=$name
-  Type=Application
-  Categories=$categories
+const configPath = "config.toml"
+const desktop = """
+[Desktop Entry]
+Name=$name
+Exec=AppRun
+Comment=$comment
+Icon=$name
+Type=Application
+Categories=$categories
 
-  X-AppImage-Name=$name
-  X-AppImage-Version=$version
-  X-AppImage-Arch=$arch
-  """.dedent()
-let config {.compileTime.} = configPath.readPrefs()
+X-AppImage-Name=$name
+X-AppImage-Version=$version
+X-AppImage-Arch=$arch
+"""
+
+let config {.compileTime.} = Toml.decode(static(slurp(configPath)), TomlValueRef)
+
+const name = config["name"].getString() 
+const version = config["version"].getString()
+
 let arch = if existsEnv("ARCH"): getEnv("ARCH") else: "amd64"
-const
-  name = config["name"].getString() 
-  version = config["version"].getString()
 let appimagePath = &"{name}-{version}-{arch}.AppImage"
 
 task "build", "Build AppImage":
@@ -34,7 +35,7 @@ task "build", "Build AppImage":
     &"AppDir/{name}.desktop", 
     desktop % [
       "name", name, 
-      "categories", config["categories"].getSeq().mapIt(it.getString()).join(";"), 
+      "categories", config["categories"].getArray().mapIt(it.getString()).join(";"), 
       "version", config["version"].getString(), 
       "comment", config["comment"].getString(), 
       "arch", arch
@@ -66,4 +67,4 @@ task "run", "Build and run AppImage":
     runTask("build")
 
   shell &"chmod a+x {appimagePath}" # Make it executable
-  shell appimagePath
+  shell &"./{appimagePath}"
