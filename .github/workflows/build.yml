@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: iffy/install-nim@v4.1.1
       - name: Build exe
-        run: nimble buildApp
+        run: nimble buildBin
       - name: Upload release binaries
         uses: alexellis/upload-assets@0.2.2
         env:
