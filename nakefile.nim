@@ -71,7 +71,7 @@ proc buildAppImage() =
   if "ghRepo" in config:
     echo "Building updateable AppImage"
     let ghInfo = config["ghRepo"].getString().split('/')
-    direShell appimagetoolPath, "-u", fmt"""gh-releases-zsync|{ghInfo[0]}|{ghInfo[1]}|latest|{name}-*-{arch}.AppImage.zsync""", "AppDir", appimagePath
+    direShell appimagetoolPath, "-u", &"\"gh-releases-zsync|{ghInfo[0]}|{ghInfo[1]}|latest|{name}-*-{arch}.AppImage.zsync\"", "AppDir", appimagePath
   else:
     echo fmt"ghRepo key not in {configPath}. Skipping updateable AppImage"
     direShell appimagetoolPath, "AppDir", appimagePath
