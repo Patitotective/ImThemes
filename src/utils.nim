@@ -58,6 +58,7 @@ type
     themeStyle*: ImGuiStyle # Current theme style
     prevThemeStyle*: ImGuiStyle # Current theme style before saving
     # Preview window
+    previewCheck*: bool
     previewBuffer*: string
     previewValuesOffset*: int32
     previewCol*, previewCol2*: array[4, float32]
@@ -502,6 +503,8 @@ proc drawStylePreview*(app: var App, name: string, style: ImGuiStyle) =
       if igBeginTabItem("Basic"):
         igText("Hello World!")
         igTextDisabled("Bye World!"); if igIsItemHovered(): igSetTooltip("Disabled text")
+
+        igCheckbox("Checkbox", app.previewCheck.addr)
 
         igButton("Click me"); igSameLine(); igButton("Me too")
         igSliderFloat("Slider", app.previewSlider.addr, 0, 50)

@@ -1,6 +1,6 @@
 # Package
 
-version          = "0.1.1"
+version          = "0.1.2"
 author           = "Patitotective"
 description      = "ImThemes is a Dear ImGui theme designer and browser written in Nim"
 license          = "MIT"
@@ -12,10 +12,10 @@ backend          = "cpp"
 requires "nim >= 1.6.2"
 requires "nake >= 1.9.4"
 requires "nimgl >= 1.3.2"
-requires "downit >= 0.1.0"
+requires "downit >= 0.1.0 & < 0.2.0"
 requires "chroma >= 0.2.4"
-requires "imstyle >= 0.3.2"
-requires "niprefs >= 0.3.4"
+requires "imstyle >= 0.3.2 & < 0.4.0"
+requires "niprefs >= 0.3.4 & < 0.4.0"
 requires "stb_image >= 2.5"
 requires "https://github.com/status-im/nim-zippy >= 0.5.7"
 
