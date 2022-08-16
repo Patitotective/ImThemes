@@ -189,7 +189,7 @@ proc drawBrowseView*(app: var App) =
 
   if not app.downloader.exists("feed"):
     app.downloader.download("https://github.com/Patitotective/ImThemes/blob/main/themes.toml?raw=true", "themes.toml", "feed")
-  elif app.downloader.downloaded("feed") and app.feed.len == 0:
+  elif app.downloader.succeed("feed") and app.feed.len == 0:
     app.feed = Toml.loadFile(app.downloader.getPath("feed").get(), TomlValueRef)["themes"].getTables()
     randomize()
     app.browseCurrentTheme = app.feed[rand(app.feed.high)]
@@ -207,7 +207,7 @@ proc drawBrowseView*(app: var App) =
   if app.browseSplitterSize.a == 0:
     app.browseSplitterSize = (avail.x * 0.2f, avail.x * 0.8f)
 
-  if app.downloader.downloaded("feed"):
+  if app.downloader.succeed("feed"):
     igSplitter(true, 8, app.browseSplitterSize.a.addr, app.browseSplitterSize.b.addr, 200, 800, avail.y)
     # List
     if igBeginChild("##browseList", igVec2(app.browseSplitterSize.a, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
@@ -218,7 +218,7 @@ proc drawBrowseView*(app: var App) =
     igEndChild(); igSameLine()
     app.drawBrowsePreview()
 
-  elif app.downloader.downloading("feed"):
+  elif app.downloader.running("feed"):
     igCenterCursor(ImVec2(x: 15 * 2, y: (15 + igGetStyle().framePadding.y) * 2))
     igSpinner("##spinner", 15, 6, igGetColorU32(ButtonHovered))
 
@@ -238,6 +238,6 @@ proc drawBrowseView*(app: var App) =
         igsetClipboardText(cstring errorMsg.get())
       igEndPopup()
 
-    if igButton("Retry") and not app.downloader.downloading("feed"):
+    if igButton("Retry") and not app.downloader.running("feed"):
       app.downloader.downloadAgain("feed")
     igEndGroup()

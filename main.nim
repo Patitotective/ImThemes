@@ -117,7 +117,7 @@ proc drawMainMenuBar(app: var App) =
 
     if igBeginMenu("Edit"):
       igMenuItem("Show framerate", nil, app.showFramerate.addr)
-      if igMenuItem(cstring "Refresh Feed " & FA_Refresh) and not app.downloader.downloading("feed"):
+      if igMenuItem(cstring "Refresh Feed " & FA_Refresh) and not app.downloader.running("feed"):
         app.downloader.downloadAgain("feed")
       igEndMenu()
 
