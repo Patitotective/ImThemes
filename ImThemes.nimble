@@ -1,6 +1,6 @@
 # Package
 
-version          = "0.1.3"
+version          = "0.2.3"
 author           = "Patitotective"
 description      = "ImThemes is a Dear ImGui theme designer and browser written in Nim"
 license          = "MIT"

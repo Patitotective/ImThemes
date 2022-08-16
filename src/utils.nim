@@ -12,7 +12,7 @@ export enumutils
 
 type
   ExportKind* = enum
-    Nim, Cpp, ImStyle, Publish
+    Nim, Cpp, CSharp, ImStyle, Publish
 
   SettingTypes* = enum
     Input # Input text
@@ -640,8 +640,10 @@ proc `<`*(date1, date2: TomlDateTime): bool =
     elif date1.time.get().subsecond < date2.time.get().subsecond:
       result = true
 
-proc strOnlyFields*[T: object](obj: T): string = 
-  result = $typeof obj
+proc strObjWithoutFieldNames*[T: object](obj: T, withoutName = false): string = 
+  if not withoutName:
+    result = $typeof obj
+  
   result.add "("
   var count = 0
   for name, field in obj.fieldPairs:
@@ -659,17 +661,19 @@ proc strOnlyFields*[T: object](obj: T): string =
 
   result.add ")"
 
-proc strWithName*[T: object](obj: T): string = 
+proc strObjWithFieldNames*[T: object](obj: T): string = 
   result = $typeof obj
   result.add $obj
 
-proc formatTemplate*(style: ImGuiStyle, name: string, exportKind: ExportKind, author, description, forkedFrom = "", tags = newSeq[string]()): string = 
+proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKind, author, description, forkedFrom = "", tags = newSeq[string]()): string = 
   result = 
     case exportKind
-    of Cpp:
-      "void SetupImGuiStyle()\n{\n"
     of Nim:
       "proc setupIgStyle() = \n"
+    of Cpp:
+      "void SetupImGuiStyle()\n{\n"
+    of CSharp:
+      "public static void SetupImGuiStyle()\n{\n"
     of Publish:
       "[[themes]]\n"
     of ImStyle: ""
@@ -681,12 +685,14 @@ proc formatTemplate*(style: ImGuiStyle, name: string, exportKind: ExportKind, au
       ""
   var body = 
     case exportKind
-    of Cpp:
-      &"// {name} style{authorText} from ImThemes\nImGuiStyle& style = ImGui::GetStyle();\n\n"
     of Nim:
-      &"# {name} style{authorText} from ImThemes\nlet style = igGetStyle()\n\n"
+      &"# {themeName} style{authorText} from ImThemes\nlet style = igGetStyle()\n\n"
+    of Cpp:
+      &"// {themeName} style{authorText} from ImThemes\nImGuiStyle& style = ImGui::GetStyle();\n\n"
+    of CSharp:
+      &"// {themeName} style{author} from ImThemes\nvar style = ImGuiNET.ImGui.GetStyle();\n\n"
     of ImStyle:
-      &"# {name} style{authorText} from ImThemes\n"
+      &"# {themeName} style{authorText} from ImThemes\n"
     of Publish:
       let forkText = 
         if forkedFrom.len > 0:
@@ -697,82 +703,87 @@ proc formatTemplate*(style: ImGuiStyle, name: string, exportKind: ExportKind, au
         if author.len > 0: author
         else: "github-username"
 
-      &"name = \"{name}\"\nauthor = \"{authorText}\"\ndescription = \"{description}\"\n{forkText}tags = {($tags)[1..^1]}\ndate = \"pr-merge-date\"\n"
+      &"name = \"{themeName}\"\nauthor = \"{authorText}\"\ndescription = \"{description}\"\n{forkText}tags = {($tags)[1..^1]}\ndate = \"pr-merge-date\"\n"
 
   if exportKind == Publish:
     body.add &"[themes.style]\n"
 
+  # Here we do not use strformat because fieldPairs has a bug that doesn't allow that
   for name, field in style.fieldPairs:
     when name in styleProps:
       case exportKind
-      of Cpp:
-        body.add "style." & name.capitalizeAscii() & " = "
       of Nim:
-        body.add "style." & name & " = "
+        body.add("style." & name & " = ")
+      of Cpp, CSharp:
+        body.add("style." & name.capitalizeAscii() & " = ")
       of ImStyle, Publish:
         if exportKind == Publish:
-          body.add "  " # Indentation
+          body.add("  ") # Indentation
 
-        body.add name & " = "
+        body.add(name & " = ")
 
       when field is ImVec2:
         case exportKind
         of Cpp:
-          body.add field.strOnlyFields()
+          body.add(field.strObjWithoutFieldNames())
+        of CSharp:
+          body.add("new Vector2" & field.strObjWithoutFieldNames(true))
         of Nim:
-          body.add field.strWithName()
+          body.add(field.strObjWithFieldNames())
         of ImStyle, Publish:
-          body.add "[" & $field.x & ", " & $field.y & "]"
+          body.add('[' & $field.x & ", " & $field.y & ']')
       elif field is enum:
         case exportKind
         of Cpp:
-          body.add $typeof(field) & "_" & $field
-        of Nim:
-          body.add $typeof(field) & "." & $field
+          body.add($typeof(field) & '_' & $field)
+        of Nim, CSharp:
+          body.add($typeof(field) & '.' & $field)
         of ImStyle, Publish:
-          body.add '"' & $field & '"'
+          body.add('"' & $field & '"')
       elif field is float32:
-        body.add $field
+        body.add($field)
 
-      if exportKind == Cpp:
-        body.add ";"
+      if exportKind in {Cpp, CSharp}:
+        body.add(';')
 
-      body.add "\n"
+      body.add('\n')
 
   if exportKind != Publish:
-    body.add "\n"
+    body.add('\n')
 
   if exportKind == ImStyle:
-    body.add "[colors]\n"
+    body.add("[colors]\n")
   elif exportKind == Publish:
-    body.add "[themes.style.colors]\n"
+    body.add("[themes.style.colors]\n")
 
   for col in ImGuiCol:
     let colVec = style.colors[ord col]
     case exportKind
     of Cpp:
-      body.add &"style.Colors[ImGuiCol_{col}] = {colVec.strOnlyFields()};"
+      body.add(&"style.Colors[ImGuiCol_{col}] = {colVec.strObjWithoutFieldNames()};")
+    of CSharp:
+      body.add(&"style.Colors[ImGuiCol.{col}] = new Vector4{colVec.strObjWithoutFieldNames(true)};")
     of Nim:
-      body.add &"style.colors[ImGuiCol.{col}] = {colVec.strWithName()}"
+      body.add(&"style.colors[ord ImGuiCol.{col}] = {colVec.strObjWithFieldNames()}")
     of ImStyle, Publish:
       if exportKind == Publish:
-        body.add "  " # Indentation
-      body.add &"{col} = \"{colVec.color().toHtmlRgba()}\""
+        body.add("  ") # Indentation
+      body.add(&"{col} = \"{colVec.color().toHtmlRgba()}\"")
 
-    body.add "\n"
+    body.add('\n')
 
   body.stripLineEnd()
 
   case exportKind
-  of Cpp:
-    result.add body.indent(1, "\t")
-    result.add "\n}"
+  of Cpp, CSharp:
+    result.add(body.indent(1, "\t"))
+    result.add("\n}")
   of Nim, Publish:
-    result.add body.indent(2)
+    result.add(body.indent(2))
   of ImStyle:
-    result.add body
+    result.add(body)
 
-proc drawExportTabs*(app: var App, style: ImGuiStyle, name: string, author, description, forkedFrom = "", tags = newSeq[string](), tabs = {Nim, Cpp, ImStyle}, availDiff = igVec2(0, 0)) = 
+proc drawExportTabs*(app: var App, style: ImGuiStyle, name: string, author, description, forkedFrom = "", tags = newSeq[string](), tabs = {Nim, Cpp, CSharp, ImStyle}, availDiff = igVec2(0, 0)) = 
   if igBeginTabBar("##exportTabs"):      
     var currentText = ""
     let avail = igGetContentRegionAvail() - availDiff
@@ -790,6 +801,14 @@ proc drawExportTabs*(app: var App, style: ImGuiStyle, name: string, author, desc
       currentText = style.formatTemplate(name, Cpp, author)
       
       igInputTextMultiline("##cpp", cstring currentText, uint currentText.len, avail, ImGuiInputTextFlags.ReadOnly)
+      igEndTabItem()
+
+    if CSharp in tabs and igBeginTabItem(cstring "C# " & FA_Code):
+      if app.currentExportTab != 1: app.copied = false
+      app.currentExportTab = 1
+      currentText = style.formatTemplate(name, CSharp, author)
+      
+      igInputTextMultiline("##csharp", cstring currentText, uint currentText.len, avail, ImGuiInputTextFlags.ReadOnly)
       igEndTabItem()
     
     if ImStyle in tabs and igBeginTabItem("TOML"):
@@ -816,7 +835,7 @@ proc drawExportTabs*(app: var App, style: ImGuiStyle, name: string, author, desc
 
     igEndTabBar()
 
-proc drawExportThemeModal*(app: var App, style: ImGuiStyle, name: string, author, description, forkedFrom = "", tags = newSeq[string](), tabs = {Nim, Cpp, ImStyle}) = 
+proc drawExportThemeModal*(app: var App, style: ImGuiStyle, name: string, author, description, forkedFrom = "", tags = newSeq[string](), tabs = {Nim, Cpp, CSharp, ImStyle}) = 
   let unusedOpen = true
   igSetNextWindowPos(igGetMainViewport().getCenter(), Always, igVec2(0.5f, 0.5f))
   igSetNextWindowSize(igVec2(500, 500))

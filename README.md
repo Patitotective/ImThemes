@@ -6,7 +6,7 @@ Dear ImGui theme designer and browser written in Nim
 ## Features
 - Theme editor.
 - Real time theme preview.
-- Export to Nim, C++ or TOML for [ImStyle](https://github.com/Patitotective/ImStyle).
+- Export to Nim, C++, C# or TOML for [ImStyle](https://github.com/Patitotective/ImStyle).
 - Browse and preview themes from the internet.
 - Filter by tags.
 - Filter by author.
