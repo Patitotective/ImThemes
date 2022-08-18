@@ -194,7 +194,8 @@ proc drawBrowseView*(app: var App) =
     randomize()
     app.browseCurrentTheme = app.feed[rand(app.feed.high)]
 
-  let avail = igGetContentRegionAvail()
+  const splitterWidth = 8
+  let avail = igGetContentRegionAvail() - igVec2(splitterWidth, 0)
 
   # Keep splitter proportions on resize
   # And hide the editing zone when not editing
@@ -208,14 +209,14 @@ proc drawBrowseView*(app: var App) =
     app.browseSplitterSize = (avail.x * 0.2f, avail.x * 0.8f)
 
   if app.downloader.succeed("feed"):
-    igSplitter(true, 8, app.browseSplitterSize.a.addr, app.browseSplitterSize.b.addr, 200, 800, avail.y)
+    igSplitter(true, splitterWidth, app.browseSplitterSize.a.addr, app.browseSplitterSize.b.addr, 200, 800, avail.y)
     # List
     if igBeginChild("##browseList", igVec2(app.browseSplitterSize.a, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
       app.drawBrowseListHeader()
       igSeparator()
       app.drawBrowseList()
 
-    igEndChild(); igSameLine()
+    igEndChild(); igSameLine(spacing = splitterWidth)
     app.drawBrowsePreview()
 
   elif app.downloader.running("feed"):

@@ -8,7 +8,7 @@ proc drawSizesTab(app: var App, style: var ImGuiStyle, alignWidth: float32) =
   igInputTextWithHint("##filter", "Filter properties", cstring app.sizesBuffer, 32)
   igDummy(igVec2(0, 5)); igSeparator(); igDummy(igVec2(0, 5))
 
-  if igBeginChild("##properties"):
+  if igBeginChild("##properties", flags = HorizontalScrollbar):
     for name, field in style.fieldPairs:
       when name in styleProps:
         if app.sizesBuffer.passFilter(name):

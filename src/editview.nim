@@ -245,8 +245,9 @@ proc drawThemesList(app: var App) =
   app.drawExportThemeModal(app.themeStyle, app.prefs["themes"][app.currentTheme]["name"].getString())
 
 proc drawEditView*(app: var App) = 
-  const minSize = 300
-  let avail = igGetContentRegionAvail()
+  const splitterWidth = 8f
+  let avail = igGetContentRegionAvail() - igVec2(splitterWidth * 2, 0)
+  let minSize = igGetStyle().windowMinSize.x
 
   # Keep splitter proportions on resize
   # And hide the editing zone when not editing
@@ -266,19 +267,20 @@ proc drawEditView*(app: var App) =
 
   # First time or when switch editing
   if app.editing and app.editSplitterSize2.b == 0f:
-    (app.editSplitterSize1, app.editSplitterSize2) = ((avail.x * 0.2f, 0f), (avail.x * 0.4f, avail.x * 0.4f))
+    (app.editSplitterSize1, app.editSplitterSize2) = ((avail.x * 0.15f, 0f), (avail.x * 0.425f, avail.x * 0.425f))
   elif app.editSplitterSize1.a == 0f:
     (app.editSplitterSize1, app.editSplitterSize2) = ((avail.x * 0.5f, 0f), (avail.x * 0.5f, 0f))
 
-  igSplitter(true, 8, app.editSplitterSize1.a.addr, app.editSplitterSize2.a.addr, minSize, minSize, avail.y)
+  igSplitter(true, splitterWidth, app.editSplitterSize1.a.addr, app.editSplitterSize2.a.addr, minSize, minSize, avail.y)
+
   # List
-  if igBeginChild("##editViewThemes", igVec2(app.editSplitterSize1.a, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
+  if igBeginChild("##editViewThemes", igVec2(app.editSplitterSize1.a, avail.y), flags = makeFlags(AlwaysUseWindowPadding, NoScrollWithMouse)):
     app.drawThemesList()
-  igEndChild(); igSameLine()
+  igEndChild(); igSameLine(spacing = splitterWidth)
 
   # Second Splitter
-  if igBeginChild("##editViewSplitter2", igVec2(app.editSplitterSize2.a + app.editSplitterSize2.b, avail.y)):
-    igSplitter(true, 8, app.editSplitterSize2.a.addr, app.editSplitterSize2.b.addr, minSize, if app.editing: minSize else: 0, avail.y)
+  if igBeginChild("##editViewSplitter2", igVec2(app.editSplitterSize2.a + app.editSplitterSize2.b, avail.y), flags = NoScrollWithMouse):
+    igSplitter(true, splitterWidth, app.editSplitterSize2.a.addr, app.editSplitterSize2.b.addr, minSize, if app.editing: minSize else: 0, avail.y)
     # Preview
     if igBeginChild("##editViewPreviewer", igVec2(app.editSplitterSize2.a, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
       igSetNextWindowPos(igGetWindowPos())
@@ -286,14 +288,14 @@ proc drawEditView*(app: var App) =
 
       app.drawStylePreview(app.prefs["themes"][app.currentTheme]["name"].getString() & (if app.isThemeReadOnly(app.currentTheme): " (Read-Only)" else: ""), app.themeStyle)
 
-    igEndChild(); igSameLine()
+    igEndChild(); igSameLine(spacing = splitterWidth)
 
     # Editor
     if app.editing:
       app.prefs["themes"][app.currentTheme]["style"] = app.themeStyle.styleToToml()
       app.saved = app.themeStyle == app.prevThemeStyle
 
-      if igBeginChild("##editViewEditor", igVec2(app.editSplitterSize2.b, avail.y), flags = makeFlags(AlwaysUseWindowPadding, HorizontalScrollbar)):
+      if igBeginChild("##editViewEditor", igVec2(app.editSplitterSize2.b, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
         app.drawEditor(app.themeStyle)
       igEndChild()
 
