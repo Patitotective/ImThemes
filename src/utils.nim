@@ -762,7 +762,7 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
     of Cpp:
       body.add(&"style.Colors[ImGuiCol_{col}] = {colVec.strObjWithoutFieldNames()};")
     of CSharp:
-      body.add(&"style.Colors[ImGuiCol.{col}] = new Vector4{colVec.strObjWithoutFieldNames(true)};")
+      body.add(&"style.Colors[(int)ImGuiCol.{col}] = new Vector4{colVec.strObjWithoutFieldNames(true)};")
     of Nim:
       body.add(&"style.colors[ord ImGuiCol.{col}] = {colVec.strObjWithFieldNames()}")
     of ImStyle, Publish:
