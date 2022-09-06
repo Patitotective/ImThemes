@@ -1823,10 +1823,10 @@
     ModalWindowDimBg = "rgba(10, 25, 22, 0.5099999904632568)"
 [[themes]]
   name = "Material Flat"
-  author = "github-username"
+  author = "ImJC1C"
   description = "(Incomplete) Dark Flat theme fitting perfectly for any app."
   tags = ["dark", "blue", "gray"]
-  date = "pr-merge-date"
+  date = 2022-09-06
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.5
