@@ -12,7 +12,7 @@ export enumutils
 
 type
   ExportKind* = enum
-    Nim, Cpp, CSharp, ImStyle, Publish
+    Nim, Cpp, CSharp, ImStyle, Publish, Json
 
   SettingTypes* = enum
     Input # Input text
@@ -677,6 +677,8 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
     of Publish:
       "[[themes]]\n"
     of ImStyle: ""
+    of Json:
+      "{\n"
 
   let authorText = 
     if author.len > 0:
@@ -696,17 +698,23 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
     of Publish:
       let forkText = 
         if forkedFrom.len > 0:
-          &"forkedFrom = \"{forkedFrom}\"\n"
+          &"forkedFrom = \"{forkedFrom.escape}\"\n"
         else: ""
 
       let authorText = 
         if author.len > 0: author
         else: "github-username"
 
-      &"name = \"{themeName}\"\nauthor = \"{authorText}\"\ndescription = \"{description}\"\n{forkText}tags = {($tags)[1..^1]}\ndate = \"pr-merge-date\"\n"
+      &"name = \"{themeName.escape}\"\nauthor = \"{authorText.escape}\"\ndescription = \"{description.escape}\"\n{forkText}tags = {($tags)[1..^1]}\ndate = \"pr-merge-date\"\n"
+    of Json:
+      &"\"name\": \"{themeName.escape}\",\nauthor: \"{authorText.escape}\",\n"
 
-  if exportKind == Publish:
-    body.add &"[themes.style]\n"
+  case exportKind
+  of Publish:
+    body.add("[themes.style]\n")
+  of Json:
+    body.add("\"style\": {\n")
+  else: discard
 
   # Here we do not use strformat because fieldPairs has a bug that doesn't allow that
   for name, field in style.fieldPairs:
@@ -721,6 +729,9 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
           body.add("  ") # Indentation
 
         body.add(name & " = ")
+      of Json:
+        body.add("  ")
+        body.add("\"" & name & "\": ")
 
       when field is ImVec2:
         case exportKind
@@ -730,7 +741,7 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
           body.add("new Vector2" & field.strObjWithoutFieldNames(true))
         of Nim:
           body.add(field.strObjWithFieldNames())
-        of ImStyle, Publish:
+        of ImStyle, Publish, Json:
           body.add('[' & $field.x & ", " & $field.y & ']')
       elif field is enum:
         case exportKind
@@ -738,7 +749,7 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
           body.add($typeof(field) & '_' & $field)
         of Nim, CSharp:
           body.add($typeof(field) & '.' & $field)
-        of ImStyle, Publish:
+        of ImStyle, Publish, Json:
           body.add('"' & $field & '"')
       elif field is float32:
         body.add($field)
@@ -751,10 +762,13 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
   if exportKind != Publish:
     body.add('\n')
 
-  if exportKind == ImStyle:
+  case exportKind
+  of ImStyle:
     body.add("[colors]\n")
-  elif exportKind == Publish:
+  of Publish:
     body.add("[themes.style.colors]\n")
+  of Json:
+    body.add("\"")
 
   for col in ImGuiCol:
     let colVec = style.colors[ord col]
