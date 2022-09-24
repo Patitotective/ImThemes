@@ -2,16 +2,18 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  build-appimage:
-    name: Build and upload amd64 AppImages
+  linux-x86_64:
+    name: linux-x86_64
     runs-on: ubuntu-18.04
 
     steps:
       - uses: actions/checkout@v2
       - uses: iffy/install-nim@v4.1.1
+
       - name: Install x11 dev libraries
         run: sudo apt install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev
-      - name: Build AppImage
+
+      - name: Build
         run: |
           nimble install -d -y
           nake build
@@ -23,14 +25,15 @@ jobs:
           path: ./*-*-*.AppImage
           if-no-files-found: error
 
-  build-win: 
-    name: Build and upload amd64 exe
+  windows-x86_64:
+    name: windows-x86_64
     runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v2
       - uses: iffy/install-nim@v4.1.1
-      - name: Build exe
+
+      - name: Build
         run: |
           nimble install -d -y
           nake build
