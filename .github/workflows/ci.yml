@@ -5,9 +5,7 @@ on:
 
 jobs:
   linux-x86_64:
-    name: linux-x86_64
     runs-on: ubuntu-18.04
-
     steps:
       - uses: actions/checkout@v2
       - uses: iffy/install-nim@v4.1.1
@@ -28,9 +26,7 @@ jobs:
           if-no-files-found: error
 
   windows-x86_64:
-    name: windows-x86_64
-    runs-on: windows-latest
-
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
       - uses: iffy/install-nim@v4.1.1
@@ -45,4 +41,22 @@ jobs:
         with:
           name: win-x86_64
           path: ./*.zip
+          if-no-files-found: error
+
+  osx-x86_64:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+      - uses: iffy/install-nim@v4.1.1
+
+      - name: Build
+        run: |
+          nimble install -d -y
+          nake build
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: osx-x86_64
+          path: ./ImThemes-*.*.*-*
           if-no-files-found: error
