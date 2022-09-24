@@ -1,0 +1,45 @@
+name: CI
+on:
+  push:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  appimage:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: iffy/install-nim@v4.1.1
+
+      - name: Install x11 dev libraries
+        run: sudo apt install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev
+
+      - name: Build
+        run: |
+          nimble install -d -y
+          nake build
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: appimage-amd64
+          path: ./*-*-*.AppImage
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: iffy/install-nim@v4.1.1
+
+      - name: Build
+        run: |
+          nimble install -d -y
+          nake build
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: win-amd64
+          path: ./*.zip
+          if-no-files-found: error
