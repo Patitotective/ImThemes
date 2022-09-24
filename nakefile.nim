@@ -78,10 +78,12 @@ proc buildAppImage() =
 
 task "build", "Build the AppImage/Exe":
   # let winBuild = existsEnv("BUILD") and getEnv("BUILD") == "WIN"
-  when defined(Windows):
+  when defined(windows):
     buildWindows()
-  else:
+  elif defined(linux):
     buildAppImage()
+  else:
+    shell "nimble buildBin"
 
 task "run", "Build and run the AppImage":
   if "AppDir/AppRun".needsRefresh("main.nim"):
