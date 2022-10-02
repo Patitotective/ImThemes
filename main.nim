@@ -203,14 +203,14 @@ proc drawMain(app: var App) = # Draw the main window
   igEnd()
 
   # GLFW clipboard -> ImGui clipboard
-  if not app.win.getClipboardString().isNil and $app.win.getClipboardString() != app.lastClipboard:
-    igsetClipboardText(app.win.getClipboardString())
-    app.lastClipboard = $app.win.getClipboardString()
+  if (let clip = app.win.getClipboardString(); not clip.isNil and $clip != app.lastClipboard):
+    igSetClipboardText(clip)
+    app.lastClipboard = $clip
 
   # ImGui clipboard -> GLFW clipboard
-  if not igGetClipboardText().isNil and $igGetClipboardText() != app.lastClipboard:
-    app.win.setClipboardString(igGetClipboardText())
-    app.lastClipboard = $igGetClipboardText()
+  if (let clip = igGetClipboardText(); not clip.isNil and $clip != app.lastClipboard):
+    app.win.setClipboardString(clip)
+    app.lastClipboard = $clip
 
 proc render(app: var App) = # Called in the main loop
   # Poll and handle events (inputs, window resize, etc.)
