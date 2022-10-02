@@ -1917,7 +1917,7 @@
   author = "BttrDrgn"
   description = "Discord (Dark) mimic theme"
   tags = ["dark"]
-  date = "pr-merge-date"
+  date = 2022-10-02
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6000000238418579
