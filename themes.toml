@@ -2008,7 +2008,7 @@
   author = "Naeemullah1"
   description = "A custom Theme I made for a Private Project"
   tags = []
-  date = "pr-merge-date"
+  date = 2022-10-12
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.5
