@@ -2100,7 +2100,7 @@
   description = "A sightly tounded version of the VS to ease the eye"
   forkedFrom = "Visual Studio"
   tags = ["dark", "rounded"]
-  date = "pr-merge-date"
+  date = 2022-10-14
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6000000238418579
