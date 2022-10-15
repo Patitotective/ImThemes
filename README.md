@@ -18,8 +18,8 @@ Dear ImGui theme designer and browser written in Nim
 
 ## Installation
 Go to the [releases page](https://github.com/Patitotective/ImThemes/releases/latest) and download:
-- [ImThemes-0.2.5-amd64.AppImage](https://github.com/Patitotective/ImThemes/releases/latest/download/ImThemes-0.2.5-amd64.AppImage) for Linux.
-- [ImThemes-0.2.5.zip](https://github.com/Patitotective/ImThemes/releases/latest/download/ImThemes-0.2.5.zip) for Windows.
+- [ImThemes-0.2.6-amd64.AppImage](https://github.com/Patitotective/ImThemes/releases/latest/download/ImThemes-0.2.6-amd64.AppImage) for Linux.
+- [ImThemes-0.2.6.zip](https://github.com/Patitotective/ImThemes/releases/latest/download/ImThemes-0.2.6.zip) for Windows.
 
 ### Nimble
 You can also install it through nimble as a binary package.
