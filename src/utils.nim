@@ -640,30 +640,48 @@ proc `<`*(date1, date2: TomlDateTime): bool =
     elif date1.time.get().subsecond < date2.time.get().subsecond:
       result = true
 
-proc strObjWithoutFieldNames*[T: object](obj: T, withoutName = false): string = 
-  if not withoutName:
+proc str*(x: float32, exportKind: ExportKind): string = 
+  case exportKind
+  of Nim, Cpp, CSharp:
+    $x & 'f'
+  else:
+    $x
+
+proc str*(obj: object, exportKind: ExportKind, objName = true, fieldNames = true): string = 
+  ## Modified version of dollars.`$`(object)
+
+  if objName:
     result = $typeof obj
-  
+
   result.add "("
+
   var count = 0
+
   for name, field in obj.fieldPairs:
     if count > 0: result.add ", "
+    
+    if fieldNames:
+      result.add(name)
+      result.add(": ")
+
     inc count
 
     when compiles($field):
-      when field isnot string and field isnot seq and compiles(field.isNil):
+      when field isnot (string or seq) and compiles(field.isNil):
         if field.isNil: result.add "nil"
-        else: result.addQuoted(field)
+        else:
+          when compiles(result.add field.str(exportKind)):
+            result.add field.str(exportKind)
+          else:
+            result.addQuoted(field)
       else:
-        result.addQuoted(field)
-    else:
+        when compiles(result.add field.str(exportKind)):
+          result.add field.str(exportKind)
+        else:
+          result.addQuoted(field)    else:
       result.add("...")
 
   result.add ")"
-
-proc strObjWithFieldNames*[T: object](obj: T): string = 
-  result = $typeof obj
-  result.add $obj
 
 proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKind, author, description, forkedFrom = "", tags = newSeq[string]()): string = 
   result = 
@@ -725,11 +743,11 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
       when field is ImVec2:
         case exportKind
         of Cpp:
-          body.add(field.strObjWithoutFieldNames())
+          body.add(field.str(exportKind, fieldNames = false))
         of CSharp:
-          body.add("new Vector2" & field.strObjWithoutFieldNames(true))
+          body.add("new Vector2" & field.str(exportKind, objName = false, fieldNames = false))
         of Nim:
-          body.add(field.strObjWithFieldNames())
+          body.add(field.str(exportKind))
         of ImStyle, Publish:
           body.add('[' & $field.x & ", " & $field.y & ']')
       elif field is enum:
@@ -741,7 +759,7 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
         of ImStyle, Publish:
           body.add('"' & $field & '"')
       elif field is float32:
-        body.add($field)
+        body.add(field.str(exportKind))
 
       if exportKind in {Cpp, CSharp}:
         body.add(';')
@@ -760,11 +778,11 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
     let colVec = style.colors[ord col]
     case exportKind
     of Cpp:
-      body.add(&"style.Colors[ImGuiCol_{col}] = {colVec.strObjWithoutFieldNames()};")
+      body.add(&"style.Colors[ImGuiCol_{col}] = {colVec.str(exportKind, fieldNames = false)};")
     of CSharp:
-      body.add(&"style.Colors[(int)ImGuiCol.{col}] = new Vector4{colVec.strObjWithoutFieldNames(true)};")
+      body.add(&"style.Colors[(int)ImGuiCol.{col}] = new Vector4{colVec.str(exportKind, objName = false, fieldNames = false)};")
     of Nim:
-      body.add(&"style.colors[ord ImGuiCol.{col}] = {colVec.strObjWithFieldNames()}")
+      body.add(&"style.colors[ord ImGuiCol.{col}] = {colVec.str(exportKind)}")
     of ImStyle, Publish:
       if exportKind == Publish:
         body.add("  ") # Indentation
