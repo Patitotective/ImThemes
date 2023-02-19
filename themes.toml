@@ -2191,7 +2191,7 @@
   author = "Giuseppe"
   description = "Comfortable for eyes (Purple - Pink)"
   tags = ["dark", "high-contrast", "rounded", "purple", "pink", "gray", "magenta"]
-  date = 2023-1-31
+  date = 2023-02-19
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.1000000014901161
