@@ -2282,7 +2282,7 @@
   author = "90th"
   description = ""
   tags = ["dark", "purple"]
-  date = "pr-merge-date"
+  date = 2023-03-06
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.300000011920929
