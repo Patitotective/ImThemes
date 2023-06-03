@@ -2370,9 +2370,9 @@
     ModalWindowDimBg = "rgba(204, 204, 204, 0.3499999940395355)"
 [[themes]]
   name = "Future Dark"
-  author = "github-username"
+  author = "rewrking"
   description = "Dark theme with indigo accent color"
-  tags = []
+  tags = ["dark","modern","indigo"]
   date = "pr-merge-date"
   [themes.style]
     alpha = 1.0
