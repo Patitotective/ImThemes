@@ -29,9 +29,9 @@ nimble install https://github.com/Patitotective/ImThemes
 
 ## Publish Your Theme
 - Click the _Publish_ button, fill the name and description, add tags, click _Next_ and copy the TOML entry.  
-- Paste the copied text at the end of [themes.toml](https://github.com/Patitotective/ImThemes/edit/main/themes.toml) (GitHub should fork it automatically for you).
+- Paste the copied text at the end of [themes.toml](https://github.com/Patitotective/ImThemes/edit/main/themes.toml) (GitHub should fork this repository automatically for you).
 - [Create a PR](https://github.com/Patitotective/ImThemes/compare/main..main?quick_pull=1&title=[Theme]+My+Theme&labels=theme) proposing your changes.
-- Automatically `validate_themes.nim` is ran to check whether the themes are valid or not. 
+- Automatically `validate_themes.nim` is ran to check whether the `themes.toml` file is valid or not. 
 
 Notes:
 - `author` corresponds to the GitHub username of the user making the PR.
