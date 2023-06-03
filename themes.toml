@@ -2373,7 +2373,7 @@
   author = "rewrking"
   description = "Dark theme with indigo accent color"
   tags = ["dark","modern","indigo"]
-  date = "pr-merge-date"
+  date = 2023-06-03
   [themes.style]
     alpha = 1.0
     disabledAlpha = 1.0
