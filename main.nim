@@ -110,7 +110,7 @@ proc drawMainMenuBar(app: var App) =
 
   if igBeginMainMenuBar():
     if igBeginMenu("File"):
-      # igMenuItem("Preferences " & FA_Cog, "Ctrl+P", openPrefs.addr)
+      igMenuItem("Preferences " & FA_Cog, "Ctrl+P", openPrefs.addr)
       if igMenuItem("Quit " & FA_Times, "Ctrl+Q"):
         app.win.setWindowShouldClose(true)
       igEndMenu()
@@ -304,7 +304,7 @@ proc initApp(config: TomlValueRef): App =
   )
   result.initPrefs()
   result.initConfig(result.config["settings"])
-  result.downloader = initDownloader(result.getCacheDir())
+  result.downloader = initDownloader(result.getCacheDir(), proxy = result.prefs["proxy"].getString() & '/', proxyUser = result.prefs["proxyUser"].getString(), proxyPassword = result.prefs["proxyPassword"].getString())
 
   result.switchTheme(int result.prefs["currentTheme"].getInt())
   result.currentSort = int result.prefs["currentSort"].getInt()

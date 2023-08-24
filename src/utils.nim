@@ -476,7 +476,11 @@ proc pushString*(str: var string, val: string) =
 
 proc updatePrefs*(app: var App) = 
   # Update the values depending on the preferences here
-  echo "Updating preferences..."
+  let proxy = app.prefs["proxy"].getString()
+  if proxy.len > 0:
+    app.downloader.setProxy(proxy & '/', app.prefs["proxyUser"].getString(), app.prefs["proxyPassword"].getString())
+  else:
+    app.downloader.removeProxy()
 
 proc getCacheDir*(app: App): string = 
   getCacheDir(app.config["name"].getString())
