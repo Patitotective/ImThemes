@@ -2461,10 +2461,10 @@
     ModalWindowDimBg = "rgba(50, 45, 139, 0.501960813999176)"
 [[themes]]
   name = "Clean Dark/Red"
-  author = "github-username"
+  author = "ImBritish"
   description = "by Mediacy"
   tags = ["red", "gray"]
-  date = "pr-merge-date"
+  date = 2023-09-23
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6000000238418579
