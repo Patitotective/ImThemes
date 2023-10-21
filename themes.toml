@@ -2555,7 +2555,7 @@
   author = "Madam-Herta"
   description = "Dark Modern theme with moon's color like accents."
   tags = ["dark", "rounded", "blue", "yellow"]
-  date = "pr-merge-date"
+  date = 2023-10-21
   [themes.style]
     alpha = 1.0
     disabledAlpha = 1.0
