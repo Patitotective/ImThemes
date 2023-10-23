@@ -2553,7 +2553,7 @@
 [[themes]]
   name = "Bootstrap Dark"
   author = "Madam-Herta"
-  description = "by Mediacy"
+  description = "Based off bootstrap 5"
   tags = ["gray", "black", "blue", "bootstrap"]
   date = 2023-10-23
   [themes.style]
