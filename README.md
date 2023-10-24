@@ -39,7 +39,7 @@ Notes:
 
 ## About
 - GitHub: https://github.com/Patitotective/ImThemes.
-- Discord: https://discord.gg/gdcPVjazCG.
+- Discord: https://discord.com/invite/U23ZQMsvwc.
 - Icon Font: https://forkaweso.me (MIT).
 
 Contact me:
