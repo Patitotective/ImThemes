@@ -6,76 +6,9 @@ import niprefs
 import stb_image/read as stbi
 import nimgl/[imgui, glfw, opengl]
 
-import icons
+import types, icons
 
 export enumutils
-
-type
-  ExportKind* = enum
-    Nim, Cpp, CSharp, ImStyle, Publish
-
-  SettingTypes* = enum
-    Input # Input text
-    Check # Checkbox
-    Slider # Int slider
-    FSlider # Float slider
-    Spin # Int spin
-    FSpin # Float spin
-    Combo
-    Radio # Radio button
-    Color3 # Color edit RGB
-    Color4 # Color edit RGBA
-    Section
-
-  ImageData* = tuple[image: seq[byte], width, height: int]
-
-  App* = object
-    win*: GLFWWindow
-    font*, strongFont*, sidebarIconFont*: ptr ImFont
-    prefs*: Prefs
-    cache*: TomlValueRef # Settings cache
-    config*: TomlValueRef # Prefs table
-    lastClipboard*: string
-    showFramerate*: bool
-    downloader*: Downloader
-
-    # Publish popup
-    themeDesc*: string
-    publishFilters*: seq[string]
-    publishScreen*: int
-
-    # Views
-    currentView*, hoveredView*: int
-
-    # Edit view
-    currentTheme*: int
-    currentExportTab*: int
-    themeName*: string # Create theme popup
-    currentThemeTemplate*: int # Create theme popup
-    editing*, saved*, copied*: bool # Editing theme, saved theme, copied export text
-    prevAvail*: ImVec2 # Previous avail content
-    editSplitterSize1*, editSplitterSize2*: tuple[a, b: float32]
-    themeStyle*: ImGuiStyle # Current theme style
-    prevThemeStyle*: ImGuiStyle # Current theme style before saving
-    # Preview window
-    previewCheck*: bool
-    previewBuffer*: string
-    previewValuesOffset*: int32
-    previewCol*, previewCol2*: array[4, float32]
-    previewValues*: array[90, float32]
-    previewProgress*, previewProgressDir*: float32
-    previewSlider*, previewRefreshTime*, previewPhase*: float32
-    # Editor
-    sizesBuffer*, colorsBuffer*: string
-
-    # Browse view
-    feed*: TomlTables
-    browseSplitterSize*: tuple[a, b: float32]
-    browseCurrentTheme*: TomlTableRef
-    browseBuffer*: string
-    currentSort*: int
-    filters*: seq[string]
-    authorFilter*: string
 
 const styleProps* = ["alpha", "disabledAlpha", "windowPadding", "windowRounding", "windowBorderSize", "windowMinSize", "windowTitleAlign", "windowMenuButtonPosition", "childRounding", "childBorderSize", "popupRounding", "popupBorderSize", "framePadding", "frameRounding", "frameBorderSize", "itemSpacing", "itemInnerSpacing", "cellPadding", "indentSpacing", "columnsMinSpacing", "scrollbarSize", "scrollbarRounding", "grabMinSize", "grabRounding", "tabRounding", "tabBorderSize", "tabMinWidthForCloseButton", "colorButtonPosition", "buttonTextAlign", "selectableTextAlign"]
 const stylePropsHelp* = ["Global alpha applies to everything in Dear ImGui.", "Additional alpha multiplier applied by BeginDisabled(). Multiply over current value of Alpha.", "Padding within a window", "Radius of window corners rounding. Set to 0.0f to have rectangular windows. Large values tend to lead to variety of artifacts and are not recommended.", "Thickness of border around windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Minimum window size", "Alignment for title bar text", "Position of the collapsing/docking button in the title bar (left/right). Defaults to ImGuiDir_Left.", "Radius of child window corners rounding. Set to 0.0f to have rectangular child windows", "Thickness of border around child windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Radius of popup window corners rounding. Set to 0.0f to have rectangular child windows", "Thickness of border around popup or tooltip windows. Generally set to 0.0f or 1.0f. Other values not well tested.", "Padding within a framed rectangle (used by most widgets)", "Radius of frame corners rounding. Set to 0.0f to have rectangular frames (used by most widgets).", "Thickness of border around frames. Generally set to 0.0f or 1.0f. Other values not well tested.", "Horizontal and vertical spacing between widgets/lines", "Horizontal and vertical spacing between within elements of a composed widget (e.g. a slider and its label)", "Padding within a table cell", "Horizontal spacing when e.g. entering a tree node. Generally == (FontSize + FramePadding.x*2).", "Minimum horizontal spacing between two columns. Preferably > (FramePadding.x + 1).", "Width of the vertical scrollbar, Height of the horizontal scrollbar", "Radius of grab corners rounding for scrollbar", "Minimum width/height of a grab box for slider/scrollbar", "Radius of grabs corners rounding. Set to 0.0f to have rectangular slider grabs.", "Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs.", "Thickness of border around tabs.", "Minimum width for close button to appears on an unselected tab when hovered. Set to 0.0f to always show when hovering, set to FLT_MAX to never show close button unless selected.", "Side of the color button in the ColorEdit4 widget (left/right). Defaults to ImGuiDir_Right.", "Alignment of button text when button is larger than text.", "Alignment of selectable text. Defaults to (0.0f, 0.0f) (top-left aligned). It's generally important to keep this left-aligned if you want to lay multiple items on a same line."]

@@ -12,10 +12,10 @@ backend          = "cpp"
 requires "nim >= 1.6.2"
 requires "nake >= 1.9.4"
 requires "nimgl >= 1.3.2"
-requires "downit#devel" # DEVEL >= 0.3.2 & < 1.3.0
+requires "downit >= 0.2.1 & < 0.3.0"
 requires "chroma >= 0.2.4"
-requires "imstyle >= 0.3.2 & < 1.0.0"
-requires "niprefs >= 0.3.5 & < 1.0.0"
+requires "kdl >= 1.0.0 & < 2.0.0"
+requires "imstyle >= 2.0.0 & < 3.0.0"
 requires "stb_image >= 2.5"
 requires "https://github.com/status-im/nim-zippy >= 0.5.7"
 
