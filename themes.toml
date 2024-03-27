@@ -2736,11 +2736,11 @@ ModalWindowDimBg = "rgba(51, 51, 51, 0.3499999940395355)"
     ModalWindowDimBg = "rgba(50, 45, 139, 0.501960813999176)"
 [[themes]]
   name = "Purple Comfy"
-  author = "RegularLunar, Giuseppe"
+  author = "RegularLunar"
   description = "recolored to a more dark purple than regular comfy. original credits go to Giuseppe"
   forkedFrom = "Comfy"
   tags = ["dark", "purple", "rounded"]
-  date = "pr-merge-date"
+  date = 2024-03-26
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.1000000014901161
