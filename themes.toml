@@ -2834,7 +2834,7 @@ ModalWindowDimBg = "rgba(51, 51, 51, 0.3499999940395355)"
   author = "DatRobotix"
   description = "Red Oni theme (Depicts the Japanese Oni Monster)"
   tags = ["dark", "magenta", "pink", "rounded"]
-  date = "2024-04-17"
+  date = 2024-04-16
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6000000238418579
