@@ -5,36 +5,31 @@ import nimgl/imgui
 
 import editor, utils
 
-template isThemeReadOnly(app: App, index: int): bool = 
-  if "readonly" in app.prefs["themes"][index]:
-    app.prefs["themes"][index]["readonly"].getBool()
-  else:
-    false
-
 proc validThemeName(app: App): bool =
-  app.themeName.cleanString().len > 0 and not app.prefs["themes"].getTables().anyIt(it["name"] == app.themeName.cleanString()) 
+  let n = app.newThemeName.cleanString()
+  n.len > 0 and not app.prefs[themes].anyIt(it.name == n) 
 
 proc drawCreateThemeModal(app: var App) = 
   igSetNextWindowPos(igGetMainViewport().getCenter(), Always, igVec2(0.5f, 0.5f))
   if igBeginPopupModal("New Theme", flags = makeFlags(AlwaysAutoResize)):
-    igInputTextWithHint("##themeName", "Name", cstring app.themeName, 64)
+    igInputTextWithHint("##themeName", "Name", cstring app.newThemeName, 64)
     
-    let templates = app.prefs["themes"]
-    if igBeginCombo("##templateCombo", cstring(if app.currentThemeTemplate < 0: "Choose a template" else: templates[app.currentThemeTemplate]["name"].getString())):
-      for e, theme in templates.getTables():
-        if igSelectable(cstring theme["name"].getString(), e == app.currentThemeTemplate):
-          app.currentThemeTemplate = e
+    let templates = app.prefs[themes]
+    if igBeginCombo("##templateCombo", cstring(if app.newThemeTemplate < 0: "Choose a template" else: templates[app.newThemeTemplate].name)):
+      for e, theme in templates.getTables:
+        if igSelectable(cstring theme.name, e == app.newThemeTemplate):
+          app.newThemeTemplate = e
 
       igEndCombo()
 
     var okBtnDisabled = false
-    if not app.validThemeName() or app.currentThemeTemplate < 0:
+    if not app.validThemeName() or app.newThemeTemplate < 0:
       okBtnDisabled = true
       igBeginDisabled()
 
     if igButton("Ok"):
-      app.prefs["themes"].add toTTable({name: app.themeName.cleanString(), style: templates[app.currentThemeTemplate]["style"]})
-      app.switchTheme(app.prefs["themes"].getTables().high)
+      app.prefs[themes].add Theme(name: app.newThemeName.cleanString(), style: templates[app.newThemeTemplate].style)
+      app.switchTheme(app.prefs[themes].high)
 
       igCloseCurrentPopup()
 
@@ -52,7 +47,7 @@ proc drawDeleteThemeModal(app: var App) =
     igText("Are you sure you want to delete it?\n You won't be able to undo this action.")
 
     if igButton("Yes"):
-      app.prefs["themes"].delete(app.currentTheme)
+      app.prefs[themes].delete(app.currentTheme)
       app.switchTheme(0)
       igCloseCurrentPopup()
 
@@ -65,7 +60,7 @@ proc drawDeleteThemeModal(app: var App) =
 proc drawEditNameModal(app: var App) = 
   igSetNextWindowPos(igGetMainViewport().getCenter(), Always, igVec2(0.5f, 0.5f))
   if igBeginPopupModal("Edit Name", flags = makeFlags(AlwaysAutoResize)):
-    igInputTextWithHint("##themeName", "Name", cstring app.themeName, 64)
+    igInputTextWithHint("##themeName", "Name", cstring app.newThemeName, 64)
 
     var okBtnDisabled = false
     if not app.validThemeName():
@@ -73,7 +68,7 @@ proc drawEditNameModal(app: var App) =
       igBeginDisabled()
     
     if (not okBtnDisabled and igIsItemActivePreviousFrame() and not igIsItemActive() and igIsKeyPressedMap(ImGuiKey.Enter)) or igButton("Ok"):
-      app.prefs["themes"][app.currentTheme]["name"] = app.themeName.cleanString()
+      app.prefs[themes][app.currentTheme].name = app.newThemeName.cleanString()
 
       igCloseCurrentPopup()
 
@@ -98,17 +93,17 @@ proc drawPublishThemeModal(app: var App) =
     let style = igGetStyle()
     if app.publishScreen == 0:
       igSetNextItemWidth(igGetContentRegionAvail().x)
-      if igInputTextWithHint("##themeName", "Name", cstring app.themeName, 64): app.copied = false
+      if igInputTextWithHint("##themeName", "Name", cstring app.newThemeName, 64): app.publishTextCopied = false
       igSetNextItemWidth(igGetContentRegionAvail().x)
-      if igInputTextWithHint("##themeDesc", "Description", cstring app.themeDesc, 128): app.copied = false
+      if igInputTextWithHint("##themeDesc", "Description", cstring app.themeDesc, 128): app.publishTextCopied = false
 
       igText("Tags: "); igSameLine()
-      if app.drawFilters(app.publishFilters, filterTags = tags, addBtnRight = true): app.copied = false
+      if app.drawFilters(app.publishFilters, filterTags = tags, addBtnRight = false): app.publishTextCopied = false
       
       if igButton("Next"): app.publishScreen = 1
 
     else:
-      let theme = app.prefs["themes"][app.currentTheme]
+      let theme = app.prefs[themes][app.currentTheme]
 
       igText("Copy the following text and paste it at the end of")
       igURLText("https://github.com/Patitotective/ImThemes/edit/main/themes.toml", "themes.toml", sameLineBefore = false)
@@ -118,10 +113,10 @@ proc drawPublishThemeModal(app: var App) =
 
       app.drawExportTabs(
         app.themeStyle, 
-        app.themeName.cleanString(), 
-        author = if "author" in theme: theme["author"].getString() else: "", 
+        app.newThemeName.cleanString(), 
+        author = theme.author, 
         description = app.themeDesc.cleanString(), 
-        forkedFrom = if "forkedFrom" in theme: theme["forkedFrom"].getString() else: "", 
+        forkedFrom = theme.forkedFrom.get(""), 
         tags = app.publishFilters, 
         tabs = {Publish}, 
         availDiff = igVec2(0, igGetFrameHeight() + style.itemSpacing.y)
@@ -141,9 +136,9 @@ proc drawThemesList(app: var App) =
   if igBeginListBox("##themes", igVec2(app.editSplitterSize1.a, igGetContentRegionAvail().y - igGetFrameHeight() - style.windowPadding.y)):
     var openRename, openDelete = false
 
-    for e, theme in app.prefs["themes"].getTables():
+    for e, theme in app.prefs[themes]:
       let selected = e == app.currentTheme
-      let name = cstring theme["name"].getString() & (if app.isThemeReadOnly(e): " (Read-Only)" else: "")
+      let name = cstring theme.name & (if app.isThemeReadOnly(e): " (Read-Only)" else: "")
 
       if igSelectable(name, selected) and (not selected or (selected and app.editing)):
         app.switchTheme(e)
@@ -154,7 +149,7 @@ proc drawThemesList(app: var App) =
 
     if igBeginPopup("contextMenu"):
       if igMenuItem("Rename"):
-        app.themeName = newString(64, app.prefs["themes"][app.currentTheme]["name"].getString())
+        app.newThemeName = newString(64, app.prefs[themes][app.currentTheme].name)
         openRename = true
       if igMenuItem("Delete"):
         openDelete = true
@@ -169,7 +164,7 @@ proc drawThemesList(app: var App) =
     igEndListBox()
 
   if igButton("Create"):
-    (app.themeName, app.currentThemeTemplate) = (newString(64), -1)
+    (app.newThemeName, app.newThemeTemplate) = (newString(64), -1)
     igOpenPopup("New Theme")
 
   igSameLine()
@@ -177,14 +172,14 @@ proc drawThemesList(app: var App) =
   let readOnly = app.isThemeReadOnly(app.currentTheme)
   var editBtnDisabled = false # When editing editBtn means discardBtn and SaveBtn
 
-  if readOnly or (app.editing and app.saved): # Cannot edit a read-only theme or an already saved theme
+  if readOnly or (app.editingTheme and app.themeS+aved): # Cannot edit a read-only theme or an already saved theme
     editBtnDisabled = true
     igBeginDisabled()
 
-  if app.editing:
-    if igButton("Discard"):
+  if app.editingTheme:
+    if igButton("Discard") :
       app.themeStyle = app.prevThemeStyle
-      app.prefs["themes"][app.currentTheme]["style"] = app.prefs["themes"][app.currentTheme]["prevStyle"]
+      app.prefs[themes][app.currentTheme].style = app.prefs[themes][app.currentTheme].prevStyle.get() ## FIXME check if prevstyle isSome
 
     if igIsItemHovered(AllowWhenDisabled):
       if editBtnDisabled:
@@ -197,7 +192,7 @@ proc drawThemesList(app: var App) =
     igSameLine()
     if igButton("Save"):
       app.prevThemeStyle = app.themeStyle
-      app.prefs["themes"][app.currentTheme]["prevStyle"] = app.prefs["themes"][app.currentTheme]["style"]
+      app.prefs[themes][app.currentTheme].prevStyle = app.prefs[themes][app.currentTheme].style.some()
 
     if igIsItemHovered(AllowWhenDisabled):
       if editBtnDisabled:
@@ -224,7 +219,7 @@ proc drawThemesList(app: var App) =
   if not app.editing:
     igSameLine()
     if igButton("Publish"):
-      app.themeName = newString(64, app.prefs["themes"][app.currentTheme]["name"].getString())
+      app.themeName = newString(64, app.prefs[themes][app.currentTheme].name)
       app.themeDesc = newString(128)
       app.publishScreen = 0
       app.publishFilters.reset()
@@ -242,7 +237,7 @@ proc drawThemesList(app: var App) =
 
   app.drawCreateThemeModal()
   app.drawPublishThemeModal()
-  app.drawExportThemeModal(app.themeStyle, app.prefs["themes"][app.currentTheme]["name"].getString())
+  app.drawExportThemeModal(app.themeStyle, app.prefs[themes][app.currentTheme].name)
 
 proc drawEditView*(app: var App) = 
   const splitterWidth = 8f
@@ -286,13 +281,13 @@ proc drawEditView*(app: var App) =
       igSetNextWindowPos(igGetWindowPos())
       igSetNextWindowSize(igGetWindowSize())
 
-      app.drawStylePreview(app.prefs["themes"][app.currentTheme]["name"].getString() & (if app.isThemeReadOnly(app.currentTheme): " (Read-Only)" else: ""), app.themeStyle)
+      app.drawStylePreview(app.prefs[themes][app.currentTheme].name & (if app.isThemeReadOnly(app.currentTheme): " (Read-Only)" else: ""), app.themeStyle)
 
     igEndChild(); igSameLine(spacing = splitterWidth)
 
     # Editor
     if app.editing:
-      app.prefs["themes"][app.currentTheme]["style"] = app.themeStyle.styleToToml()
+      app.prefs[themes][app.currentTheme].style = app.themeStyle.styleToToml()
       app.saved = app.themeStyle == app.prevThemeStyle
 
       if igBeginChild("##editViewEditor", igVec2(app.editSplitterSize2.b, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):

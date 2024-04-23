@@ -1,10 +1,11 @@
 import std/[typetraits, enumutils, strformat, strutils, macros, times, math, os]
 import downit
-import chroma
 import imstyle
-import niprefs
+import kdl, kdl/[prefs]
+import openurl
 import stb_image/read as stbi
 import nimgl/[imgui, glfw, opengl]
+import chroma
 
 import types, icons
 
@@ -233,17 +234,9 @@ proc igClickableText*(text: string, sameLineBefore, sameLineAfter = true): bool 
 
   if sameLineAfter: igSameLine(0, 0)
 
-proc openURL*(url: string) = 
-  when defined(MacOS) or defined(MacOSX):
-    discard execShellCmd("open " & url)
-  elif defined(Windows):
-    discard execShellCmd("start " & url)
-  else:
-    discard execShellCmd("xdg-open " & url)
-
 proc igURLText*(url: string, text = "", sameLineBefore, sameLineAfter = true) = 
   if igClickableText(if text.len > 0: text else: url, sameLineBefore, sameLineAfter):
-    url.openURL()
+    openURL(url)
 
   if igIsItemHovered():
     igSetTooltip(cstring url & " " & FA_ExternalLink)
@@ -256,26 +249,6 @@ proc igIsItemActivePreviousFrame*(): bool =
   let context = igGetCurrentContext()
   result = context.activeIdPreviousFrame == context.lastItemData.id
 
-# To be able to print large holey enums
-macro enumFullRange*(a: typed): untyped =
-  newNimNode(nnkBracket).add(a.getType[1][1..^1])
-
-iterator items*(T: typedesc[HoleyEnum]): T =
-  for x in T.enumFullRange:
-    yield x
-
-proc getEnumValues*[T: enum](): seq[string] = 
-  for i in T:
-    result.add $i
-
-proc parseEnum*[T: enum](node: TomlValueRef): T = 
-  assert node.kind == TomlKind.String
-
-  try:
-    result = parseEnum[T](node.getString().capitalizeAscii())
-  except:
-    raise newException(ValueError, &"Invalid enum value {node.getString()} for {$T}. Valid values are {$getEnumValues[T]()}")
-
 proc makeFlags*[T: enum](flags: varargs[T]): T =
   ## Mix multiple flags of a specific enum
   var res = 0
@@ -284,51 +257,12 @@ proc makeFlags*[T: enum](flags: varargs[T]): T =
 
   result = T res
 
-proc getFlags*[T: enum](node: TomlValueRef): T = 
-  ## Similar to parseEnum but this one mixes multiple enum values if node.kind == PSeq
-  case node.kind:
-  of TomlKind.String, TomlKind.Int:
-    result = parseEnum[T](node)
-  of TomlKind.Array:
-    var flags: seq[T]
-    for i in node.getArray():
-      flags.add parseEnum[T](i)
+proc parseMakeFlags*[T: enum](flags: seq[string]): T =
+  var res = 0
+  for x in flags:
+    res = res or int parseEnum[T](x)
 
-    result = makeFlags(flags)
-  else:
-    raise newException(ValueError, "Invalid kind {node.kind} for {$T} enum. Valid kinds are PInt, PString or PSeq") 
-
-proc parseColor3*(node: TomlValueRef): array[3, float32] = 
-  case node.kind
-  of TomlKind.String:
-    let color = node.getString().parseHtmlColor()
-    result[0] = color.r
-    result[1] = color.g
-    result[2] = color.b 
-  of TomlKind.Array:
-    assert node.len == 3
-    result[0] = node[0].getFloat()
-    result[1] = node[1].getFloat()
-    result[2] = node[2].getFloat()
-  else:
-    raise newException(ValueError, &"Invalid color RGB {node}")
-
-proc parseColor4*(node: TomlValueRef): array[4, float32] = 
-  case node.kind
-  of TomlKind.String:
-    let color = node.getString().parseHtmlColor()
-    result[0] = color.r
-    result[1] = color.g
-    result[2] = color.b 
-    result[3] = color.a
-  of TomlKind.Array:
-    assert node.len == 4
-    result[0] = node[0].getFloat()
-    result[1] = node[1].getFloat()
-    result[2] = node[2].getFloat()
-    result[3] = node[3].getFloat()
-  else:
-    raise newException(ValueError, &"Invalid color RGBA {node}")
+  result = T res
 
 proc color*(vec: ImVec4): Color = color(vec.x, vec.y, vec.z, vec.w)
 
@@ -356,226 +290,183 @@ proc loadTextureFromData*(data: var ImageData, outTexture: var GLuint) =
 
     glTexImage2D(GL_TEXTURE_2D, GLint 0, GL_RGBA.GLint, GLsizei data.width, GLsizei data.height, GLint 0, GL_RGBA, GL_UNSIGNED_BYTE, data.image[0].addr)
 
-proc removeInside*(text: string, open, close: char): tuple[text: string, inside: string] = 
-  ## Remove the characters inside open..close from text, return text and the removed characters
-  runnableExamples:
-    assert "Hello<World>".removeInside('<', '>') == ("Hello", "World")
-  var inside = false
-  for i in text:
-    if i == open:
-      inside = true
-      continue
-
-    if not inside:
-      result.text.add i
-
-    if i == close:
-      inside = false
-
-    if inside:
-      result.inside.add i
-
-proc initConfig*(app: var App, settings: TomlValueRef, parent = "", overwrite = false) = 
-  # Add the preferences with the values defined in config["settings"]
-  for data in settings: 
-    let name = data["name"].getString()
-    let settingType = parseEnum[SettingTypes](data["type"])
-    if settingType == Section:
-      app.initConfig(data["content"], parent = name, overwrite)
-    elif parent.len > 0:
-      if parent notin app.prefs or overwrite:
-        app.prefs[parent] = newTTable()
-      if name notin app.prefs[parent] or overwrite:
-        app.prefs{parent, name} = data["default"]
-    else:
-      if name notin app.prefs or overwrite:
-        app.prefs[name] = data["default"]
-
-proc newString*(lenght: int, default: string): string = 
-  result = newString(lenght)
-  result[0..default.high] = default
-
-proc cleanString*(str: string): string = 
-  if '\0' in str:
-    str[0..<str.find('\0')].strip()
-  else:
-    str.strip()
-
-proc pushString*(str: var string, val: string) = 
+proc pushString*(str: var string, val: string) =
   if val.len < str.len:
     str[0..val.len] = val & '\0'
   else:
     str[0..str.high] = val[0..str.high]
 
+proc newString*(length: Natural, default: string): string =
+  result = newString(length)
+  result.pushString(default)
+
+proc cleanString*(str: string): string =
+  for e, c in str:
+    if c == '\0':
+      return str[0..<e].strip()
+
+  str.strip()
+
 proc updatePrefs*(app: var App) = 
-  # Update the values depending on the preferences here
-  let proxy = app.prefs["proxy"].getString()
-  if proxy.len > 0:
-    app.downloader.setProxy(proxy & '/', app.prefs["proxyUser"].getString(), app.prefs["proxyPassword"].getString())
+  # Update values depending on the preferences here
+  # This procedure is also called at the start of the app
+  if app.prefs[settings].proxy.inputVal.len > 0:
+    app.downloader.setProxy(app.prefs[settings].proxy.inputVal & '/', app.prefs[settings].proxyUser.inputVal, app.prefs[settings].proxyPassword.inputVal)
   else:
     app.downloader.removeProxy()
 
+proc cmpIgnoreStyle(a, b: openarray[char], ignoreChars = {'_', '-'}): int =
+  let aLen = a.len
+  let bLen = b.len
+  var i = 0
+  var j = 0
+
+  while true:
+    while i < aLen and a[i] in ignoreChars: inc i
+    while j < bLen and b[j] in ignoreChars: inc j
+    let aa = if i < aLen: toLowerAscii(a[i]) else: '\0'
+    let bb = if j < bLen: toLowerAscii(b[j]) else: '\0'
+    result = ord(aa) - ord(bb)
+    if result != 0: return result
+    # the characters are identical:
+    if i >= aLen:
+      # both cursors at the end:
+      if j >= bLen: return 0
+      # not yet at the end of 'b':
+      return -1
+    elif j >= bLen:
+      return 1
+    inc i
+    inc j
+
+proc eqIdent*(v, a: openarray[char], ignoreChars = {'_', '-'}): bool = cmpIgnoreStyle(v, a, ignoreChars) == 0
+
+proc initCacheSettingsObj(a: var object)
+proc saveSettingsObj(a: var object)
+
+proc valToCache*(s: var Setting) =
+  case s.kind
+  of stInput:
+    s.inputCache = s.inputVal
+  of stCombo:
+    s.comboCache = s.comboVal
+  of stCheck:
+    s.checkCache = s.checkVal
+  of stSlider:
+    s.sliderCache = s.sliderVal
+  of stFSlider:
+    s.fsliderCache = s.fsliderVal
+  of stSpin:
+    s.spinCache = s.spinVal
+  of stFSpin:
+    s.fspinCache = s.fspinVal
+  of stRadio:
+    s.radioCache = s.radioVal
+  of stSection:
+    when s.content is object:
+      initCacheSettingsObj(s.content)
+    else:
+      raise newException(ValueError, $s & " must be an object, got " & $typeof(s.content))
+  of stRGB:
+    s.rgbCache = s.rgbVal
+  of stRGBA:
+    s.rgbaCache = s.rgbaVal
+  # of stFile:
+  #   s.fileCache.val = s.fileVal
+  # of stFiles:
+  #   s.filesCache.val = s.filesVal
+  # of stFolder:
+  #   s.folderCache.val = s.folderVal
+
+proc cacheToVal*(s: var Setting) =
+  case s.kind
+  of stInput:
+    s.inputVal = s.inputCache
+  of stCombo:
+    s.comboVal = s.comboCache
+  of stCheck:
+    s.checkVal = s.checkCache
+  of stSlider:
+    s.sliderVal = s.sliderCache
+  of stFSlider:
+    s.fsliderVal = s.fsliderCache
+  of stSpin:
+    s.spinVal = s.spinCache
+  of stFSpin:
+    s.fspinVal = s.fspinCache
+  of stRadio:
+    s.radioVal = s.radioCache
+  of stSection:
+    when s.content is object:
+      saveSettingsObj(s.content)
+    else:
+      raise newException(ValueError, $s & " must be an object, got " & $typeof(s.content))
+  of stRGB:
+    s.rgbVal = s.rgbCache
+  of stRGBA:
+    s.rgbaVal = s.rgbaCache
+  # of stFile:
+  #   s.fileVal = s.fileCache.val
+  # of stFiles:
+  #   s.filesVal = s.filesCache.val
+  # of stFolder:
+  #   s.folderVal = s.folderCache.val
+
+proc cacheToDefault*(s: var Setting) =
+  case s.kind
+  of stInput:
+    s.inputCache = s.inputDefault
+  of stCombo:
+    s.comboCache = s.comboDefault
+  of stCheck:
+    s.checkCache = s.checkDefault
+  of stSlider:
+    s.sliderCache = s.sliderDefault
+  of stFSlider:
+    s.fsliderCache = s.fsliderDefault
+  of stSpin:
+    s.spinCache = s.spinDefault
+  of stFSpin:
+    s.fspinCache = s.fspinDefault
+  of stRadio:
+    s.radioCache = s.radioDefault
+  of stSection:
+    when s.content is object:
+      initCacheSettingsObj(s.content)
+    else:
+      raise newException(ValueError, $s & " must be an object, got " & $typeof(s.content))
+  of stRGB:
+    s.rgbCache = s.rgbDefault
+  of stRGBA:
+    s.rgbaCache = s.rgbaDefault
+  # of stFile:
+  #   s.fileCache.val = s.fileDefault
+  # of stFiles:
+  #   s.filesCache.val = s.filesDefault
+  # of stFolder:
+  #   s.folderCache.val = s.folderDefault
+
+proc saveSettingsObj(a: var object) =
+  for field in a.fields:
+    field.cacheToVal()
+
+proc initCacheSettingsObj(a: var object) =
+  for field in a.fields:
+    field.valToCache()
+
+proc initCache*(a: var Settings) =
+  ## Sets all a's cache values to the current values (`inputCache = inputVal`)
+  initCacheSettingsObj(a)
+
+proc save*(a: var Settings) =
+  ## Sets all a's current values to the cache values (`inputVal = inputCache`)
+  saveSettingsObj(a)
+
 proc getCacheDir*(app: App): string = 
-  getCacheDir(app.config["name"].getString())
-
-proc drawStylePreview*(app: var App, name: string, style: ImGuiStyle) = 
-  let prevStyle = igGetStyle()[]
-  igGetCurrentContext().style = style
-
-  if igBegin(cstring name & " Preview", flags = makeFlags(ImGuiWindowFlags.NoResize, AlwaysUseWindowPadding, NoMove, MenuBar)):
-    if igBeginMenuBar():
-      if igBeginMenu("File"):
-        igMenuItem("New")
-        igMenuItem("Open", "Ctrl+O")
-        if igBeginMenu("Open Recent"):
-          igMenuItem("fish_hat.c")
-          igMenuItem("fish_hat.inl")
-          igMenuItem("fish_hat.h")
-          igEndMenu()
-        igEndMenu()
-
-      igEndMenuBar()
-
-    if igBeginTabBar("Tabs"):
-      if igBeginTabItem("Basic"):
-        igText("Hello World!")
-        igTextDisabled("Bye World!"); if igIsItemHovered(): igSetTooltip("Disabled text")
-
-        igCheckbox("Checkbox", app.previewCheck.addr)
-
-        igButton("Click me"); igSameLine(); igButton("Me too")
-        igSliderFloat("Slider", app.previewSlider.addr, 0, 50)
-        igInputTextWithHint("##input", "Type here...", cstring app.previewBuffer, 64)
-
-        igColorEdit4("Color Edit", app.previewCol)
-        igColorEdit4("Color Edit HSV", app.previewCol2, makeFlags(PickerHueWheel, DisplayHSV))
-
-        if igBeginChild("Child", igVec2(0, 150), true):
-          for i in 1..50:
-            igSelectable(cstring "I'm beef #" & $i)
-          
-        igEndChild()
-
-        if igCollapsingHeader("Collapse me", DefaultOpen):
-          igIndent()
-          igButton("Popup")
-          if igIsItemClicked():
-            igOpenPopup("popup")
-
-          igBeginDisabled(true)
-          igButton("You cannot click me")
-          if igIsItemHovered(AllowWhenDisabled):
-            igSetTooltip("But you can see me")
-          
-          igSliderFloat("Slider shadow", app.previewSlider.addr, 0, 50)
-          igEndDisabled()
-
-          if igButton("Popup modal"):
-            igOpenPopup("modal")
-
-          igUnindent()
-    
-        if igBeginPopup("popup"):
-          for i in ["We", "Are", "What", "We", "Think"]:
-            igSelectable(cstring i)
-
-          igEndPopup()
-
-        if igBeginPopupModal("modal"):
-          igText("I'm a popup modal")
-          
-          if igButton("Close me"):
-            igCloseCurrentPopup()
-          
-          igEndPopup()
-
-        igEndTabItem()
-
-      if igBeginTabItem("Plots"):
-        # Plots
-        # Histogram
-        let arr = [0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f]
-        igPlotHistogram("Histogram", arr[0].unsafeAddr, int32 arr.len, 0, "Histogram", 0f, 1f, igVec2(0, 80f));
-
-        # Lines
-        if app.previewRefreshTime == 0:
-          app.previewRefreshTime = igGetTime()
-
-        while app.previewRefreshTime < igGetTime(): # Create data at fixed 60 Hz rate for the demo
-            app.previewValues[app.previewValuesOffset] = cos(app.previewPhase)
-            app.previewValuesOffset = int32 (app.previewValuesOffset + 1) mod app.previewValues.len
-            app.previewPhase += 0.1f * float32 app.previewValuesOffset
-            app.previewRefreshTime += 1f / 60f
-
-        var average = 0f
-        for n in app.previewValues:
-          average += n
-        average /= float32 app.previewValues.len
-
-        igPlotLines("Lines", app.previewValues[0].addr, int32 app.previewValues.len, app.previewValuesOffset, "Average", -1f, 1f, igVec2(0, 80f));
-        
-        app.previewProgress += app.previewProgressDir * 0.4f * igGetIO().deltaTime
-        
-        if app.previewProgress >= 1.1f:
-          app.previewProgress = 1.1f
-          app.previewProgressDir *= -1f;
-        if app.previewProgress <= -0.1f:
-          app.previewProgress = -0.1f
-          app.previewProgressDir *= -1f
-
-        igProgressBar(app.previewProgress)
-
-        let progressSaturated = if app.previewProgress < 0f: 0f elif app.previewProgress > 1f: 1f else: app.previewProgress
-        igProgressBar(app.previewProgress, overlay = cstring &"{int(progressSaturated * 1753)}/1753")
-
-        igEndTabItem()
-
-      if igBeginTabItem("Tables"):
-        if igBeginTable("table1", 4, makeFlags(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg, ImGuiTableFlags.Resizable, ImGuiTableFlags.Reorderable)):
-          igTableSetupColumn("One")
-          igTableSetupColumn("Two")
-          igTableSetupColumn("Three")
-          igTableHeadersRow()
-
-          for row in 0..5:
-            igTableNextRow()
-            for col in 0..3:
-              igTableNextColumn()
-              igText(cstring &"Hello {row}, {col}")
-
-          igEndTable()
-
-        igEndTabItem()
-
-      igEndTabBar()
-
-  igEnd()
-
-  igGetCurrentContext().style = prevStyle
+  getCacheDir(app.config.name)
 
 proc passFilter*(buffer: string, str: string): bool = 
   buffer.cleanString().toLowerAscii() in str.toLowerAscii()
-
-proc `<`*(date1, date2: TomlDateTime): bool = 
-  assert date1.date.isSome() and date2.date.isSome()
-
-  # By date
-  if date1.date.get().year < date2.date.get().year:
-    result = true
-  elif date1.date.get().month < date2.date.get().month:
-    result = true
-  elif date1.date.get().day < date2.date.get().day:
-    result = true
-  # By time
-  elif date1.time.isSome() and date2.time.isSome():
-    if date1.time.get().hour < date2.time.get().hour:
-      result = true
-    elif date1.time.get().minute < date2.time.get().minute:
-      result = true
-    elif date1.time.get().second < date2.time.get().second:
-      result = true
-    elif date1.time.get().subsecond < date2.time.get().subsecond:
-      result = true
 
 proc str*(x: float32, exportKind: ExportKind): string = 
   case exportKind
@@ -877,9 +768,11 @@ proc switchTheme*(app: var App, themeIndex: int) =
   app.currentTheme = themeIndex
   app.editSplitterSize1.a = 0f
   app.editSplitterSize2.b = 0f
-  app.themeStyle = app.prefs["themes"][themeIndex]["style"].styleFromToml()
-  if "prevStyle" notin app.prefs["themes"][themeIndex]:
-    app.prefs["themes"][themeIndex]["prevStyle"] = app.prefs["themes"][themeIndex]["style"]
+
+  app.themeStyle = app.prefs[themes][themeIndex].style
+
+  if app.prefs[themes][themeIndex].prevStyle.isNone:
+    app.prefs[themes][themeIndex].prevStyle = app.prefs[themes][themeIndex].style.some
 
   if not app.saved:
     app.prevthemeStyle = app.prefs["themes"][themeIndex]["prevStyle"].styleFromToml()
