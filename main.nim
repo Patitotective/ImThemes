@@ -58,6 +58,17 @@ proc drawAboutModal(app: App) =
 
     igText(cstring app.config.version)
 
+    if app.prefs.path.len > 0:
+      igSameLine()
+
+      igSetCursorPosX(igGetCurrentWindow().size.x - igCalcFrameSize("Open prefs file").x - igGetStyle().windowPadding.x)
+
+      if igButton("Open prefs file"):
+        openURL(app.prefs.path)
+
+      if igIsItemHovered():
+        igSetTooltip(cstring app.prefs.path & " " & FA_FileTextO)
+
     igEndPopup()
 
 proc drawMainMenuBar(app: var App) =
@@ -154,12 +165,12 @@ proc drawMain(app: var App) = # Draw the main window
   if igBegin(cstring app.config.name, flags = makeFlags(ImGuiWindowFlags.NoResize, ImGuiWindowFlags.NoBringToFrontOnFocus, NoDecoration, NoMove)):
     if app.showFramerate:
       igText(FA_Info & " Application average %.3f ms/frame (%.1f FPS)", 1000f / igGetIO().framerate, igGetIO().framerate)
-    if app.currentView == 0:
+    
+    case app.currentView
+    of vEditView:
       app.drawEditView()
-    elif app.currentView == 1:
+    of vBrowseView:
       app.drawBrowseView()
-    else:
-      igText("hello")
 
   igEnd()
 

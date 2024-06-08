@@ -350,7 +350,7 @@ type
     name*, author*: string
     readonly*: bool
     style*: ImGuiStyle
-    prevStyle* Option[ImGuiStyle]
+    prevStyle*: Option[ImGuiStyle]
     forkedFrom*: Option[string]
 
 const
