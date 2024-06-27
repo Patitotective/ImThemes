@@ -3103,7 +3103,7 @@ NavWindowingHighlight = "rgba(255, 255, 255, 0.4678111672401428)"
 NavWindowingDimBg = "rgba(0, 0, 0, 0.733905553817749)"
 ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
 [[themes]]
-  name = "DCUK RED nope! is DARK RED"
+  name = "DUCK RED nope! is DARK RED"
   author = "for40255"
   description = "DucKRed DucKRed DucKRed DucKRed"
   tags = ["dark", "red", "high-contrast"]
