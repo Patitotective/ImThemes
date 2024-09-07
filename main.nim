@@ -258,7 +258,7 @@ proc initApp(): App =
   result = App(
     config: Config(), 
     currentView: -1, hoveredView: -1, currentTheme: -1, 
-    sizesBuffer: newString(32), colorsBuffer: newString(32), previewBuffer: newString(64), browseBuffer: newString(64), 
+    sizesTabFilter: newString(32), colorsTabFilter: newString(32), previewBuffer: newString(64), browseBuffer: newString(64), 
     previewProgressDir: 1f, 
   )
 

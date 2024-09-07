@@ -5,13 +5,13 @@ import utils
 proc drawSizesTab(app: var App, style: var ImGuiStyle, alignWidth: float32) = 
   igDummy(igVec2(0, 5))
 
-  igInputTextWithHint("##filter", "Filter properties", cstring app.sizesBuffer, 32)
+  igInputTextWithHint("##filter", "Filter properties", cstring app.sizesTabFilter, 32)
   igDummy(igVec2(0, 5)); igSeparator(); igDummy(igVec2(0, 5))
 
   if igBeginChild("##properties", flags = HorizontalScrollbar):
     for name, field in style.fieldPairs:
       when name in styleProps:
-        if app.sizesBuffer.passFilter(name):
+        if app.sizesTabFilter.passFilter(name):
           igText(cstring name.capitalizeAscii() & ": "); igSameLine(0, 0)
           igDummy(igVec2(alignWidth - igCalcTextSize(cstring name.capitalizeAscii() & ": ").x, 0)); igSameLine(0, 0)
 
@@ -56,12 +56,12 @@ proc drawSizesTab(app: var App, style: var ImGuiStyle, alignWidth: float32) =
 proc drawColorsTab(app: var App, style: var ImGuiStyle) = 
   igDummy(igVec2(0, 5))
 
-  igInputTextWithHint("##filter", "Filter colors", cstring app.colorsBuffer, 32)
+  igInputTextWithHint("##filter", "Filter colors", cstring app.colorsTabFilter, 32)
   igDummy(igVec2(0, 5)); igSeparator(); igDummy(igVec2(0, 5))
 
   if igBeginChild("##colors"):
     for color in ImGuiCol:
-      if not app.colorsBuffer.passFilter($color):
+      if not app.colorsTabFilter.passFilter($color):
         continue
       
       var colorArray = [style.colors[ord color].x, style.colors[ord color].y, style.colors[ord color].z, style.colors[ord color].w]

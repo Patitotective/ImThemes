@@ -21,6 +21,8 @@ type
     proxyUser* = inputSetting(display = "Proxy username", default = "")
     proxyPassword* = inputSetting(display = "Proxy password", default = "")
 
+# For encoding/decoding the settings to/from the preferences file
+
 proc decodeSettingsObj*(a: KdlNode, v: var object) =
   for fieldName, field in v.fieldPairs:
     for child in a.children:
@@ -138,6 +140,15 @@ type
   ExportKind* = enum
     Nim, Cpp, CSharp, ImStyle, Publish
 
+  Sort* = enum
+    AlphAsc, AlphDesc, Newest, Oldest
+
+  Colors* = enum
+    Red, Blue, Green, Yellow, Orange, Purple, Magenta, Pink, Gray
+
+  Tags* = enum
+    Light, Dark, HighContrast = "High-constrast", Rounded
+
   View = enum
     vEditView, vBrowseView
 
@@ -147,32 +158,49 @@ type
     winsize* = (w: 1500i32, h: 700i32)
     settings* = initSettings()
     currentView* = vBrowseView
-    currentTheme* = 0
-    currentSort* = 0
-    themes* = [classicTheme, darkTheme, lightTheme, cherryTheme]
-    starred*: seq[Theme]
+    currentSort* = AlphAsc # For the browse view
+    currentTheme* = 0 # For the edit view
+    themes* = [classicTheme, darkTheme, lightTheme, cherryTheme] # For the edit view
+    starred*: seq[int] # For the browsview
 
   EditView* = object
-    currentTheme*: int
-    currentExportTab*: int
-    newThemeName*: string # Create theme popup
-    newThemeTemplate*: int # Create theme popup
-    editingTheme*, themeSaved*, publishTextCopied*: bool # Editing theme, saved theme, copied publish text
+    currentTheme*: int # From prefs.themes
+    currentExportTab*: ExportKind
+    # Create theme popup
+    newThemeName*: string
+    newThemeTemplate*: int
+    editingTheme*, themeSaved*, publishTextCopied*: bool
     prevAvail*: ImVec2 # Previous avail content (to adjust the splitters ratio when changing window size)
     editSplitterSize1*, editSplitterSize2*: tuple[a, b: float32]
-    # themeStyle*: ImGuiStyle # Current theme style
-    # prevThemeStyle*: ImGuiStyle # Current theme style before saving
+
+    # Editor
+    sizesTabFilter*, colorsTabFilter*: string
 
   BrowseView* = object
     # Browse view
     feed*: seq[Theme]
     browseSplitterSize*: tuple[a, b: float32]
-    browseCurrentTheme*: Theme
+    browseCurrentTheme*: int
     browseBuffer*: string
-    currentSort*: int
-    filters*: seq[string]
+    currentSort*: Sort
+    tagFilters*: set[Tags]
+    colorFilters*: set[Colors]
     authorFilter*: string
 
+  PublishPopup* = object
+    themeDesc*: string
+    tagFilters*: set[Tags]
+    colorFilters*: set[Colors]
+    publishScreen*: int
+
+  PreviewWindow* = object
+    check*: bool
+    buffer*: string
+    valuesOffset*: int32
+    col*, col2*: array[4, float32]
+    values*: array[90, float32]
+    progress*, progressDir*: float32
+    slider*, refreshTime*, phase*: float32
 
   App* = object
     win*: GLFWWindow
@@ -185,29 +213,14 @@ type
 
     lastClipboard*: string
     showFramerate*: bool
-    downloader*: Downloader
+    downloader*: Downloader # downit downloader
 
-    # Publish popup
-    themeDesc*: string
-    publishFilters*: seq[string]
-    publishScreen*: int
-
-    # Views
+    publicPopup*: PublicPopup
     currentView*, hoveredView*: View
+    editView*: EditView
+    browseView*: BrowseView
 
-    # Edit view
-
-    # Preview window
-    previewCheck*: bool
-    previewBuffer*: string
-    previewValuesOffset*: int32
-    previewCol*, previewCol2*: array[4, float32]
-    previewValues*: array[90, float32]
-    previewProgress*, previewProgressDir*: float32
-    previewSlider*, previewRefreshTime*, previewPhase*: float32
-
-    # Editor
-    sizesBuffer*, colorsBuffer*: string
+    previewWin*: PreviewWindow
 
   ImageData* = tuple[image: seq[byte], width, height: int]
 

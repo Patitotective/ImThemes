@@ -4,15 +4,10 @@ Dear ImGui theme designer and browser written in Nim
 ![Browse](https://user-images.githubusercontent.com/79225325/173915188-d17f8246-9ded-4188-a6fc-b8ebce811f07.png)
 
 ## Features
-- Theme editor.
-- Real time theme preview.
-- Export to Nim, C++, C# or TOML for [ImStyle](https://github.com/Patitotective/ImStyle).
-- Browse and preview themes from the internet.
-- Filter by tags.
-- Filter by author.
-- Star your favorite themes.
-- Sort themes alphabetically and by publish date.
-- Fork themes.
+- Theme editor with real time theme preview.
+- Export to Nim, C++, C# or TOML for usage with [ImStyle](https://github.com/Patitotective/ImStyle).
+- Browse and preview themes from the internet, filter them by their tags or by their authors and sort them.
+- Star your favorite themes or fork them and customize them to your style!.
 
 ![Edit](https://user-images.githubusercontent.com/79225325/173915196-7f493bb9-4aa6-4929-8e81-1037ccd8f3aa.png)
 
@@ -31,11 +26,11 @@ nimble install https://github.com/Patitotective/ImThemes
 - Click the _Publish_ button, fill the name and description, add tags, click _Next_ and copy the TOML entry.  
 - Paste the copied text at the end of [themes.toml](https://github.com/Patitotective/ImThemes/edit/main/themes.toml) (GitHub should fork this repository automatically for you).
 - [Create a PR](https://github.com/Patitotective/ImThemes/compare/main..main?quick_pull=1&title=[Theme]+My+Theme&labels=theme) proposing your changes.
-- Automatically `validate_themes.nim` is ran to check whether the `themes.toml` file is valid or not. 
+- Wait for the checks to run and for it to get approved.
 
 Notes:
 - `author` corresponds to the GitHub username of the user making the PR.
-- `author` and `date` will be added manually when merging the PR (you can add the `author` yourself as well).
+- `author` and `date` will be added manually by me when merging the PR.
 
 ## About
 - GitHub: https://github.com/Patitotective/ImThemes.
