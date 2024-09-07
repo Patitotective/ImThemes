@@ -9,7 +9,7 @@ import downit
 
 import configtype, settingstypes, themes
 
-export configtype
+export configtype, themes, settingstypes
 
 proc toSeq[T: enum](_: typedesc[T]): seq[T] =
   for i in T:
@@ -143,12 +143,6 @@ type
   Sort* = enum
     AlphAsc, AlphDesc, Newest, Oldest
 
-  Colors* = enum
-    Red, Blue, Green, Yellow, Orange, Purple, Magenta, Pink, Gray
-
-  Tags* = enum
-    Light, Dark, HighContrast = "High-constrast", Rounded
-
   View = enum
     vEditView, vBrowseView
 
@@ -160,18 +154,20 @@ type
     currentView* = vBrowseView
     currentSort* = AlphAsc # For the browse view
     currentTheme* = 0 # For the edit view
-    themes* = [classicTheme, darkTheme, lightTheme, cherryTheme] # For the edit view
-    starred*: seq[int] # For the browsview
+    editThemes* = [classicTheme, darkTheme, lightTheme, cherryTheme] # For the edit view
+    starred*: seq[string] # For the browsview
 
   EditView* = object
     currentTheme*: int # From prefs.themes
     currentExportTab*: ExportKind
+    editingTheme*, themeSaved*, publishTextCopied*: bool
+
+    prevAvail*: ImVec2 # Previous avail content (to adjust the splitters ratio when changing window size)
+    editSplitterSize1*, editSplitterSize2*: tuple[a, b: float32]
+
     # Create theme popup
     newThemeName*: string
     newThemeTemplate*: int
-    editingTheme*, themeSaved*, publishTextCopied*: bool
-    prevAvail*: ImVec2 # Previous avail content (to adjust the splitters ratio when changing window size)
-    editSplitterSize1*, editSplitterSize2*: tuple[a, b: float32]
 
     # Editor
     sizesTabFilter*, colorsTabFilter*: string
@@ -179,18 +175,20 @@ type
   BrowseView* = object
     # Browse view
     feed*: seq[Theme]
+    falseFeed*: seq[int] # Indexes of feed but sorted and filtered
     browseSplitterSize*: tuple[a, b: float32]
     browseCurrentTheme*: int
     browseBuffer*: string
     currentSort*: Sort
-    tagFilters*: set[Tags]
-    colorFilters*: set[Colors]
+    tagFilters*: set[Tag]
+    colorFilters*: set[Color]
     authorFilter*: string
+    starredFilter*: bool
 
   PublishPopup* = object
     themeDesc*: string
-    tagFilters*: set[Tags]
-    colorFilters*: set[Colors]
+    tagFilters*: set[Tag]
+    colorFilters*: set[Color]
     publishScreen*: int
 
   PreviewWindow* = object
@@ -215,7 +213,7 @@ type
     showFramerate*: bool
     downloader*: Downloader # downit downloader
 
-    publicPopup*: PublicPopup
+    publishPopup*: PublishPopup
     currentView*, hoveredView*: View
     editView*: EditView
     browseView*: BrowseView

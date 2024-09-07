@@ -604,9 +604,9 @@ proc formatTemplate*(style: ImGuiStyle, themeName: string, exportKind: ExportKin
     let colVec = style.colors[ord col]
     case exportKind
     of Cpp:
-      body.add(&"style.Colors[ImGuiCol_{col}] = {colVec.str(exportKind, fieldNames = false)};")
+      body.add(&"style.Color[ImGuiCol_{col}] = {colVec.str(exportKind, fieldNames = false)};")
     of CSharp:
-      body.add(&"style.Colors[(int)ImGuiCol.{col}] = new Vector4{colVec.str(exportKind, objName = false, fieldNames = false)};")
+      body.add(&"style.Color[(int)ImGuiCol.{col}] = new Vector4{colVec.str(exportKind, objName = false, fieldNames = false)};")
     of Nim:
       body.add(&"style.colors[ord ImGuiCol.{col}] = {colVec.str(exportKind)}")
     of ImStyle, Publish:
@@ -687,7 +687,7 @@ proc drawExportThemeModal*(app: var App, style: ImGuiStyle, name: string, author
     app.drawExportTabs(style, name, author, description, forkedFrom, tags, tabs)
     igEndPopup()
 
-proc drawFilters*(app: var App, filters: var seq[string], authorFilter = "", filterTags = @["starred"] & tags, addBtnRight = false): bool {.discardable.} = 
+proc drawFilters*(app: var App, filters: var seq[string], authorFilter = "", filterTag = @["starred"] & tags, addBtnRight = false): bool {.discardable.} = 
   let style = igGetStyle()
   let drawlist = igGetWindowDrawList()
   let filtersCopy = filters.deepCopy() & (if authorFilter.len > 0: @[authorFilter] else: @[])
@@ -744,13 +744,13 @@ proc drawFilters*(app: var App, filters: var seq[string], authorFilter = "", fil
     if igButton(FA_Plus): igOpenPopup("addFilter")
 
   if igBeginPopup("addFilter"):
-    for e, tag in filterTags:
+    for e, tag in filterTag:
       if tag notin filters:
         if igMenuItem(cstring tag.capitalizeAscii()):
           result = true
           filters.add tag
 
-    if igBeginMenu("Colors"):
+    if igBeginMenu("Color"):
       for e, col in colors:
         if col notin filters:
           if igMenuItem(cstring col.capitalizeAscii()):

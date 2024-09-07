@@ -97,8 +97,8 @@ proc drawPublishThemeModal(app: var App) =
       igSetNextItemWidth(igGetContentRegionAvail().x)
       if igInputTextWithHint("##themeDesc", "Description", cstring app.themeDesc, 128): app.publishTextCopied = false
 
-      igText("Tags: "); igSameLine()
-      if app.drawFilters(app.publishFilters, filterTags = tags, addBtnRight = false): app.publishTextCopied = false
+      igText("Tag: "); igSameLine()
+      if app.drawFilters(app.publishFilters, filterTag = tags, addBtnRight = false): app.publishTextCopied = false
       
       if igButton("Next"): app.publishScreen = 1
 

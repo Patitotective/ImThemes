@@ -53,7 +53,7 @@ proc drawSizesTab(app: var App, style: var ImGuiStyle, alignWidth: float32) =
 
   igEndChild()
 
-proc drawColorsTab(app: var App, style: var ImGuiStyle) = 
+proc drawColorTab(app: var App, style: var ImGuiStyle) = 
   igDummy(igVec2(0, 5))
 
   igInputTextWithHint("##filter", "Filter colors", cstring app.colorsTabFilter, 32)
@@ -79,8 +79,8 @@ proc drawEditor*(app: var App, style: var ImGuiStyle) =
       app.drawSizesTab(style, styleProps.mapIt(igCalcTextSize(cstring it & ": ").x).max())
       igEndTabItem()
 
-    if igBeginTabItem("Colors"):
-      app.drawColorsTab(style)
+    if igBeginTabItem("Color"):
+      app.drawColorTab(style)
       igEndTabItem()
 
     igEndTabBar()

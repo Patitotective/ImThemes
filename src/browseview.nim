@@ -6,34 +6,42 @@ import nimgl/imgui
 
 import utils, icons
 
-proc getFeed(app: App): TomlTables = 
-  result = app.feed
+proc sortFilterFeed(app: var App) = 
+  if app.browseView.feed.len <= 0:
+    app.browseView.falseFeed.setLen(0)
+    return
+
+  app.browseView.falseFeed = toSeq app.browseView.feed.low..app.browseView.feed.high
+
   # Filter feed
-  # By author
-  if app.authorFilter.len > 0:
-    result = result.filterIt(it["author"] == app.authorFilter)
-  # By tags/starred
-  if app.filters.len > 0:
-    for filter in app.filters:
-      if filter in colors & tags:
-        result = result.filterIt(filter.newTString() in it["tags"])
-      elif filter == "starred":
-        result = result.filterIt(it["name"] in app.prefs["starred"])
-      else: raise newException(ValueError, "Invalid filter" & filter)
-  
+  if app.browseView.authorFilter.len > 0:
+    app.browseView.falseFeed.keepItIf(
+      app.browseView.feed[it].author == app.browseView.authorFilter)
+
+  if app.browseView.tagFilters.len > 0:
+    app.browseView.falseFeed.keepItIf(
+      app.browseView.tagFilters.all(proc (x: Tag): bool = x in app.browseView.feed[it].tags))
+
+  if app.browseView.colorFilters.len > 0:
+    app.browseView.falseFeed.keepItIf(
+      app.browseView.tagFilters.all(proc (x: Color): bool = x in app.browseView.feed[it].colors))
+
+  if app.browseView.starredFilter:
+    app.browseView.falseFeed.keepItIf(app.browseView.feed[it].name in app.prefs[starred])
+
   # Sort feed
   case app.currentSort
-  of 0: # Alpha asc
-    result = result.sortedByIt(it["name"].getString())
-  of 1: # Alpha desc
-    result = result.sortedByIt(it["name"].getString())
-    result.reverse()
-  of 2: # Newest
+  of AlphAsc:
+    app.browseView.falseFeed.sort(order = SortOrder.Ascending) do (x, y: int) -> int:
+      cmp(x.name, y.name)
+  of AlphDesc:
+    app.browseView.falseFeed.sort(order = SortOrder.Descending) do (x, y: int) -> int:
+      cmp(x.name, y.name)
+  of Newest:
+    app.browseView.falseFeed.sort(order = SortOrder.Ascending) do (x, y: int) -> int:
+      cmp(x.name, y.name)
+  of Oldest:
     result = result.sortedByIt(it["date"].getDateTime())
-    result.reverse()
-  of 3: # Oldest
-    result = result.sortedByIt(it["date"].getDateTime())
-  else: raise newException(ValueError, "Invalid sort value " & $app.currentSort)
 
 proc drawBrowseListHeader(app: var App) = 
   igInputTextWithHint("##search", "Search...", cstring app.browseBuffer, 64); igSameLine()
@@ -105,13 +113,13 @@ proc drawForkThemeModal(app: var App, theme: TomlTableRef) =
 
     igEndPopup()
 
-proc drawBrowsePreview(app: var App) = 
+proc drawbrowseView(app: var App) = 
   let style = igGetStyle()
   let avail = igGetContentRegionAvail()
 
   let prevWindowPadding = igGetStyle().windowPadding
   igPushStyleVar(WindowPadding, igVec2(150, 20))
-  if igBeginChild("##browsePreview", igVec2(app.browseSplitterSize.b, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
+  if igBeginChild("##browseView", igVec2(app.browseSplitterSize.b, avail.y), flags = makeFlags(AlwaysUseWindowPadding)):
     let theme = app.browseCurrentTheme
     let themeStyle = theme["style"].styleFromToml()
 
@@ -191,6 +199,7 @@ proc drawBrowseView*(app: var App) =
     app.downloader.download("https://github.com/Patitotective/ImThemes/blob/main/themes.toml?raw=true", "themes.toml", "feed")
   elif app.downloader.succeed("feed") and app.feed.len == 0:
     app.feed = Toml.loadFile(app.downloader.getPath("feed").get(), TomlValueRef)["themes"].getTables()
+
     randomize()
     app.browseCurrentTheme = app.feed[rand(app.feed.high)]
 
@@ -217,7 +226,7 @@ proc drawBrowseView*(app: var App) =
       app.drawBrowseList()
 
     igEndChild(); igSameLine(spacing = splitterWidth)
-    app.drawBrowsePreview()
+    app.drawbrowseView()
 
   elif app.downloader.running("feed"):
     igCenterCursor(ImVec2(x: 15 * 2, y: (15 + igGetStyle().framePadding.y) * 2))

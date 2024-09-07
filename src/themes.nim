@@ -1,4 +1,4 @@
-import std/options
+import std/[options, times]
 import nimgl/imgui
 
 proc classicStyle(): ImGuiStyle = 
@@ -348,12 +348,13 @@ proc cherryStyle(): ImGuiStyle =
 type
   Theme* = object
     name*, author*: string
+    date*: DateTime
     readonly*: bool
     style*: ImGuiStyle
     prevStyle*: Option[ImGuiStyle]
     forkedFrom*: Option[string]
 
-const
+let
   classicTheme* = Theme(
     name: "Classic", author: "ocornut", 
     readonly: true, style: classicStyle()
