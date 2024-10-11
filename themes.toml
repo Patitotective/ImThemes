@@ -3377,10 +3377,10 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
     ModalWindowDimBg = "rgba(51, 51, 51, 0.3499999940395355)"
 [[themes]]
   name = "AdobeInspired"
-  author = "github-username"
+  author = "nexacopic"
   description = "ImGui theme inspired by Adobe Spectrum"
   tags = ["dark", "rounded"]
-  date = "pr-merge-date"
+  date = 2024-10-10
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6000000238418579
