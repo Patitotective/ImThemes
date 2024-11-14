@@ -3562,7 +3562,7 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
   author = "DestroyerDarkNess"
   description = "Inspired by Windows 11"
   tags = ["rounded", "dark"]
-  date = "2024-11-14"
+  date = 2024-11-14
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6000000238418579
