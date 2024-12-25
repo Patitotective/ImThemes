@@ -3650,10 +3650,10 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
     ModalWindowDimBg = "rgba(204, 204, 204, 0.3499999940395355)"
 [[themes]]
   name = "Rest"
-  author = "github-username"
+  author = "AaronBeardless"
   description = "Rest your eyes with a delightfully pleasing grey-scale theme"
   tags = ["dark", "gray", "rounded"]
-  date = "pr-merge-date"
+  date = 2024-12-25
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.5
