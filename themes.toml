@@ -3742,7 +3742,7 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
 
 [[themes]]
   name = "Comfortable Dark Cyan"
-  author = "github-username"
+  author = "SouthCraftX"
   description = ""
   forkedFrom = "Moonlight"
   tags = ["dark", "rounded", "green"]
