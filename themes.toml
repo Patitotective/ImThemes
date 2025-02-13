@@ -3930,7 +3930,7 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
 	name = "Vullmad Dark"
 	author = "ir"
 	tags = ["dark", "blue", "green"]
-	date = 2025-02-11
+	date = 2025-02-13
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6000000238418579
