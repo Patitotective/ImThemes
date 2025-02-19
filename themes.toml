@@ -4024,7 +4024,7 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
   author = "usrnatc"
   description = "ayu-dark inspired theme"
   tags = ["dark", "rounded", "blue", "orange", "gray"]
-  date = "2025-02-14"
+  date = 2025-02-19
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6000000238418579
