@@ -4,9 +4,6 @@ on:
   push:
     paths:
       - 'themes.toml'
-  pull_request:
-    paths:
-      - 'themes.toml'
 
 jobs:
   validate:
