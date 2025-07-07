@@ -4116,7 +4116,7 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
   author = "gonzaloivan121"
   description = "A classy Dear ImGui theme for the most excellent ones"
   tags = ["dark", "rounded"]
-  date = "pr-merge-date"
+  date = 2025-07-04
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6000000238418579
