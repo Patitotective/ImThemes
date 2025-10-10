@@ -1,9 +1,10 @@
-import std/[strutils, os]
+import std/[strutils, os, strformat]
 
 import downit
 import chroma
 import imstyle
 import niprefs
+import tinydialogs
 import nimgl/[opengl, glfw]
 import nimgl/imgui, nimgl/imgui/[impl_opengl, impl_glfw]
 
@@ -12,7 +13,7 @@ when defined(release):
   from resourcesdata import resources
 
 const
-  configPath = currentSourcePath.parentDir() / "config.toml"
+  configPath = "config.toml"
   sidebarViews = [
     FA_PencilSquareO, # Edit view
     FA_Search, # Browse view
@@ -693,9 +694,9 @@ proc initWindow(app: var App) =
       app.prefs["win"]["x"].getInt().int32, app.prefs["win"]["y"].getInt().int32
     )
 
-proc initPrefs(app: var App) =
+proc initPrefs(app: var App, path: string) =
   app.prefs = initPrefs(
-    path = (app.getCacheDir() / app.config["name"].getString()).changeFileExt("toml"),
+    path = path,
     default = toToml {
       win: {
         x: -1, # Negative numbers center the window
@@ -724,7 +725,26 @@ proc initApp(config: TomlValueRef): App =
     browseBuffer: newString(64),
     previewProgressDir: 1f,
   )
-  result.initPrefs()
+  let prefsPath =
+    (result.getCacheDir() / result.config["name"].getString()).changeFileExt("toml")
+  try:
+    result.initPrefs(prefsPath)
+  except:
+    let m = messageBox(
+      result.config["name"].getString(),
+      &"Corrupt preferences file {prefsPath}.\nYou cannot continue using the app until it is fixed.\nYou may fix it manually or do you want to delete it and reset its content? You cannot undo this action",
+      DialogType.OkCancel,
+      IconType.Error,
+      Button.No,
+    )
+    if m == Button.Yes:
+      discard tryRemoveFile(prefsPath)
+      result.initPrefs(prefsPath)
+    else:
+      raise
+
+  result.updatePrefs()
+
   result.initConfig(result.config["settings"])
   result.downloader = initDownloader(result.getCacheDir())
 
