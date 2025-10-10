@@ -21,14 +21,11 @@ jobs:
           nimble c nakefile.nim
           nake build
 
-      - uses: actions-ecosystem/action-get-latest-tag@v1
-        id: get-latest-tag
-      
       - uses: oprypin/find-latest-tag@v1
+        id: latest-tag  # The step ID to refer to later.
         with:
           repository: ${{ github.repository }}  # The repository to scan.
           releases-only: true  # We know that all relevant tags have a GitHub release for them.
-          id: latest-tag  # The step ID to refer to later.
     
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
@@ -62,10 +59,10 @@ jobs:
           nake build
 
       - uses: oprypin/find-latest-tag@v1
+        id: latest-tag  # The step ID to refer to later.
         with:
           repository: ${{ github.repository }}  # The repository to scan.
           releases-only: true  # We know that all relevant tags have a GitHub release for them.
-          id: latest-tag  # The step ID to refer to later.
     
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
