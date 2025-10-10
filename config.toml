@@ -1,14 +1,12 @@
 # App
 name = "ImThemes"
 comment = "ImThemes is a Dear ImGui theme designer and browser written in Nim"
-version = "0.2.6"
+version = "0.3.0"
 website = "https://github.com/Patitotective/ImThemes"
 authors = ["Patitotective <https://github.com/Patitotective>"]
 categories = ["Utility"]
-
 # AppImage
 ghRepo = "Patitotective/ImThemes"
-
 stylePath = "assets/style.toml"
 iconPath = "assets/icon.png"
 svgIconPath = "assets/icon.svg"
@@ -16,9 +14,8 @@ iconFontPath = "assets/forkawesome-webfont.ttf"
 fontPath = "assets/Karla-Regular.ttf"
 strongFontPath = "assets/Karla-Bold.ttf"
 fontSize = 18.0
-
 # Window
-minSize = [700, 500] # Width, height
+minSize = [700, 500]  # Width, height
 
 # Settings for the preferences window
 [[settings]]
@@ -26,8 +23,9 @@ name = "input"
 type = "input"
 default = "Hello World"
 max = 100
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiInputTextFlags
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiInputTextFlags
 help = "Help message"
+
 [[settings]]
 name = "hintInput"
 display = "Input with hint"
@@ -35,28 +33,33 @@ hint = "type something"
 type = "input"
 default = ""
 max = 100
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiInputTextFlags
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiInputTextFlags
 help = "Help message"
+
 [[settings]]
 name = "checkbox"
 type = "check"
 default = true
+
 [[settings]]
 name = "combo"
 type = "combo"
-default = 2 # Or "c"
+default = 2  # Or "c"
 items = ["a", "b", "c"]
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiComboFlags
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiComboFlags
+
 [[settings]]
 name = "radio"
 type = "radio"
-default = "b" # Or 1
+default = "b"  # Or 1
 items = ["a", "b", "c"]
+
 [[settings]]
 name = "numbers"
 display = "Spinners and sliders"
 type = "section"
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiTreeNodeFlags
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiTreeNodeFlags
+
 [[settings.content]]
 name = "slider"
 type = "slider"
@@ -64,46 +67,52 @@ default = 4
 min = 0
 max = 9
 format = "%d"
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiSliderFlags
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiSliderFlags
+
 [[settings.content]]
 name = "floatSider"
 display = "Float slider"
-type = "fslider" # For floats
+type = "fslider"  # For floats
 default = 2.5
 min = 0.0
 max = 5.0
 format = "%.1f"
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiSliderFlags
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiSliderFlags
+
 [[settings.content]]
 name = "spin"
-type = "spin" # Input int
+type = "spin"  # Input int
 default = 5
 step = 1
 step_fast = 10
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiInputTextFlags
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiInputTextFlags
+
 [[settings.content]]
 name = "floatSpin"
 display = "Float spin"
-type = "fspin" # Input float
+type = "fspin"  # Input float
 default = 5.0
 step = 1.0
 step_fast = 10.0
 format = "%.1f"
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiInputTextFlags
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiInputTextFlags
+
 [[settings]]
 name = "colors"
 display = "Color pickers"
 type = "section"
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiTreeNodeFlags
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiTreeNodeFlags
+
 [[settings.content]]
 name = "color"
 display = "RGB color"
-type = "color3" # RGB
-default = "#000000" # Or [0, 0, 0] or rgb(0, 0, 0) or black
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiColorEditFlags
+type = "color3"  # RGB
+default = "#000000"  # Or [0, 0, 0] or rgb(0, 0, 0) or black
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiColorEditFlags
+
 [[settings.content]]
 name = "alphaColor"
 display = "RGBA color"
-type = "color4" # RGBA
-default  =  "rgba(17, 209, 194, 0.64)" # Or [0.06666667014360428, 0.8196078538894653, 0.7607843279838562, 0.6392157077789307]
-flags = "None" # See https://nimgl.dev/docs/imgui.html#ImGuiColorEditFlags
+type = "color4"  # RGBA
+default = "rgba(17, 209, 194, 0.64)"  # Or [0.06666667014360428, 0.8196078538894653, 0.7607843279838562, 0.6392157077789307]
+flags = "None"  # See https://nimgl.dev/docs/imgui.html#ImGuiColorEditFlags
