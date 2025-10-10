@@ -1,9 +1,11 @@
-# ignore files with no extention:
-*
-!*/
+# Ignore files without extension https://stackoverflow.com/a/19023985
+ *
+!/**/
 !*.*
 
+nimcache/
+nimblecache/
+htmldocs/
+
 *.exe
-*.sublime-*
 trial.*
-AppDir
