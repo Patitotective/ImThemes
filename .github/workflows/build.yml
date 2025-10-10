@@ -18,6 +18,7 @@ jobs:
       - name: Build AppImage
         run: |
           nimble install -d -y
+          nimble c nakefile.nim
           nake build
       - name: Upload release binaries
         uses: alexellis/upload-assets@0.2.2
@@ -35,6 +36,7 @@ jobs:
       - name: Build exe
         run: |
           nimble install -d -y
+          nimble c nakefile.nim
           nake build
       - name: Upload release binaries
         uses: alexellis/upload-assets@0.2.2

@@ -17,6 +17,7 @@ jobs:
       - name: Build
         run: |
           nimble install -d -y
+          nimble c nakefile.nim
           nake build
 
       - name: Upload Artifacts
@@ -35,6 +36,7 @@ jobs:
       - name: Build
         run: |
           nimble install -d -y
+          nimble c nakefile.nim
           nake build
 
       - name: Upload Artifacts

@@ -1,6 +1,7 @@
 name: Validate themes
 
 on:
+  workflow_dispatch: 
   push:
     paths:
       - 'themes.toml'
