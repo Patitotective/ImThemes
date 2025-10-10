@@ -2,7 +2,7 @@
 
 const name = "ImThemes"
 
-version = "0.2.6"
+version = "0.3.0"
 author = "Patitotective"
 description = "ImThemes is a Dear ImGui theme designer and browser written in Nim"
 license = "MIT"
@@ -12,7 +12,6 @@ backend = "cpp"
 # Dependencies
 
 requires "nim ^= 2.2.0"
-requires "nake ^= 1.9.0"
 requires "nimgl ^= 1.3.0"
 requires "downit ^= 0.2.0"
 requires "chroma ^= 0.2.0"
@@ -48,4 +47,3 @@ task runBin, "Build and run the application":
   exec fmt"./{outPath}"
 
 requires "tinydialogs >= 1.1.0"
-

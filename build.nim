@@ -1,6 +1,5 @@
-import std/[strformat, sequtils, os]
+import std/[strformat, strutils, sequtils, os]
 
-import nake
 import zippy/ziparchives
 import niprefs
 
@@ -32,23 +31,32 @@ let arch =
   else:
     "amd64"
 let appimagePath = &"{name}-{version}-{arch}.AppImage"
+echo version
+echo appimagePath
+
+proc exec(cmd: varargs[string, `$`]): int {.discardable.} =
+  let cmd = cmd.join(" ")
+  echo "> ", cmd
+  result = execShellCmd(cmd)
 
 proc buildWindows() =
   let outDir = &"{name}-{version}"
 
   createDir outDir
-  shell fmt"set FLAGS=""--outdir:{outDir}"" && nimble buildBin"
+  exec fmt"set FLAGS=""--outdir:{outDir}"" && nimble buildBin"
 
   for kind, path in walkDir(binDir):
     if kind == pcFile:
       copyFileToDir(path, outDir)
 
-  createZipArchive(outDir & "/", outDir & ".zip")
+  let outPath = outDir & ".zip"
+  createZipArchive(outDir & "/", outDir)
+
+  echo "Success -> ", outPath
 
 proc buildAppImage() =
   discard existsOrCreateDir("AppDir")
-  if "AppDir/AppRun".needsRefresh("main.nim"):
-    shell "FLAGS=\"--out:AppDir/AppRun -d:appimage\" nimble buildBin"
+  exec "FLAGS=\"--out:AppDir/AppRun -d:appimage\" nimble buildBin"
 
   let desktopContent =
     desktop % [
@@ -75,37 +83,30 @@ proc buildAppImage() =
     )
 
   var appimagetoolPath = "appimagetool"
-  if not silentShell("Checking for appimagetool", appimagetoolPath, "--help"):
+  echo "Checking for appimagetool"
+  if exec(appimagetoolPath, "--help") != 0:
+    # If it doesn't exist
     appimagetoolPath = "./appimagetool-x86_64.AppImage"
     if not fileExists(appimagetoolPath):
-      direSilentShell &"Dowloading {appimagetoolPath}",
-        "wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O ",
-        appimagetoolPath
-      shell "chmod +x", appimagetoolPath
+      echo &"Dowloading {appimagetoolPath}"
+      exec &"wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetoolPath"
+      exec &"chmod +x {appimagetoolPath}"
 
   if "ghRepo" in config:
     echo "Building updateable AppImage"
     let ghInfo = config["ghRepo"].getString().split('/')
     echo &"\"gh-releases-zsync|{ghInfo[0]}|{ghInfo[1]}|latest|{name}-*-{arch}.AppImage.zsync\""
-    direShell appimagetoolPath,
-      "-u",
-      &"\"gh-releases-zsync|{ghInfo[0]}|{ghInfo[1]}|latest|{name}-*-{arch}.AppImage.zsync\"",
-      "AppDir",
-      appimagePath
+    exec appimagetoolPath & " -u " &
+      &"\"gh-releases-zsync|{ghInfo[0]}|{ghInfo[1]}|latest|{name}-*-{arch}.AppImage.zsync\"" &
+      " AppDir " & appimagePath
   else:
     echo &"ghRepo key not in {configPath}. Skipping updateable AppImage"
-    direShell appimagetoolPath, "AppDir", appimagePath
+    exec appimagetoolPath & " AppDir " & appimagePath
 
-task "build", "Build the AppImage/Exe":
-  # let winBuild = existsEnv("BUILD") and getEnv("BUILD") == "WIN"
-  when defined(Windows):
-    buildWindows()
-  else:
-    buildAppImage()
+  echo "Success -> ", appimagePath
 
-task "run", "Build and run the AppImage":
-  if "AppDir/AppRun".needsRefresh("main.nim"):
-    runTask("build")
-
-  shell &"chmod a+x {appimagePath}" # Make it executable
-  shell &"./{appimagePath}"
+# let winBuild = existsEnv("BUILD") and getEnv("BUILD") == "WIN"
+when defined(Windows):
+  buildWindows()
+else:
+  buildAppImage()
