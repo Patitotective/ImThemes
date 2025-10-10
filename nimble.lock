@@ -1,0 +1,156 @@
+{
+  "version": 2,
+  "packages": {
+    "chroma": {
+      "version": "0.2.7",
+      "vcsRevision": "b2e71179174e040884ebf6a16cbac711c84620b9",
+      "url": "https://github.com/treeform/chroma",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "f873f4b97e87a82e27e0b85bf9130fe3e320a2b8"
+      }
+    },
+    "downit": {
+      "version": "0.2.2",
+      "vcsRevision": "e9cbc6c53034d51131761280af13aae7d9542788",
+      "url": "https://github.com/Patitotective/downit",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "170892c9c968ac0751cbdd9aff7ff85e403947fa"
+      }
+    },
+    "results": {
+      "version": "0.5.1",
+      "vcsRevision": "df8113dda4c2d74d460a8fa98252b0b771bf1f27",
+      "url": "https://github.com/arnetheduck/nim-results",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "a9c011f74bc9ed5c91103917b9f382b12e82a9e7"
+      }
+    },
+    "unittest2": {
+      "version": "0.2.4",
+      "vcsRevision": "8b51e99b4a57fcfb31689230e75595f024543024",
+      "url": "https://github.com/status-im/nim-unittest2",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "746106a4dfefffce497f1693733f1c1513b5c62c"
+      }
+    },
+    "stew": {
+      "version": "0.4.1",
+      "vcsRevision": "e5740014961438610d336cd81706582dbf2c96f0",
+      "url": "https://github.com/status-im/nim-stew",
+      "downloadMethod": "git",
+      "dependencies": [
+        "results",
+        "unittest2"
+      ],
+      "checksums": {
+        "sha1": "996d9c058ee078d0209a5f539424a0235683918c"
+      }
+    },
+    "faststreams": {
+      "version": "0.5.0",
+      "vcsRevision": "ce27581a3e881f782f482cb66dc5b07a02bd615e",
+      "url": "https://github.com/status-im/nim-faststreams",
+      "downloadMethod": "git",
+      "dependencies": [
+        "stew",
+        "unittest2"
+      ],
+      "checksums": {
+        "sha1": "ee61e507b805ae1df7ec936f03f2d101b0d72383"
+      }
+    },
+    "nimgl": {
+      "version": "1.3.2",
+      "vcsRevision": "309d6ed8164ad184ed5bbb171c9f3d9d1c11ff81",
+      "url": "https://github.com/nimgl/nimgl",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "9d94ff205d72321e896dd6130403510e9a1c8a5d"
+      }
+    },
+    "serialization": {
+      "version": "0.4.9",
+      "vcsRevision": "b5193007a49639b21b2b80cd8ef8cbe0df6b0e48",
+      "url": "https://github.com/status-im/nim-serialization",
+      "downloadMethod": "git",
+      "dependencies": [
+        "faststreams",
+        "unittest2",
+        "stew"
+      ],
+      "checksums": {
+        "sha1": "ab0812a7e16ae39ee68f4a6b1938a1b83dee34be"
+      }
+    },
+    "toml_serialization": {
+      "version": "0.2.18",
+      "vcsRevision": "b5b387e6fb2a7cc75d54a269b07cc6218361bd46",
+      "url": "https://github.com/status-im/nim-toml-serialization",
+      "downloadMethod": "git",
+      "dependencies": [
+        "faststreams",
+        "serialization",
+        "stew"
+      ],
+      "checksums": {
+        "sha1": "76ae1c2af5dd092849b41750ff29217980dc9ca3"
+      }
+    },
+    "niprefs": {
+      "version": "0.3.5",
+      "vcsRevision": "30f522ac1888ae2930e833ab6c5d954baf3e8702",
+      "url": "https://github.com/Patitotective/niprefs",
+      "downloadMethod": "git",
+      "dependencies": [
+        "toml_serialization"
+      ],
+      "checksums": {
+        "sha1": "370855d00a8460857d2c67c23d2d6cb90be9423a"
+      }
+    },
+    "imstyle": {
+      "version": "0.3.4",
+      "vcsRevision": "79056a308f800d7e7e8e56b1a505103213d5219f",
+      "url": "https://github.com/Patitotective/ImStyle",
+      "downloadMethod": "git",
+      "dependencies": [
+        "nimgl",
+        "chroma",
+        "niprefs"
+      ],
+      "checksums": {
+        "sha1": "11f0f38fdd949dbd8083b59be3413d21a5d52a16"
+      }
+    },
+    "nake": {
+      "version": "1.9.5",
+      "vcsRevision": "63e87e1713459588f33844280de9821ba04e34c6",
+      "url": "https://github.com/fowlmouth/nake/",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "68417e0be911c140e1ca6c8491d0b9315503781a"
+      }
+    },
+    "stb_image": {
+      "version": "2.5",
+      "vcsRevision": "ba5f45286bfa9bed93d8d6b941949cd6218ec888",
+      "url": "https://gitlab.com/define-private-public/stb_image-Nim.git",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "abf5fd03e72ee4c316c50a0538b973e355dcb175"
+      }
+    }
+  },
+  "tasks": {}
+}
