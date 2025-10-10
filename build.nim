@@ -30,9 +30,8 @@ let arch =
     getEnv("ARCH")
   else:
     "amd64"
+
 let appimagePath = &"{name}-{version}-{arch}.AppImage"
-echo version
-echo appimagePath
 
 proc exec(cmd: varargs[string, `$`]): int {.discardable.} =
   let cmd = cmd.join(" ")
@@ -82,28 +81,31 @@ proc buildAppImage() =
       &"AppDir/usr/share/metainfo/{name}.appdata.xml",
     )
 
-  var appimagetoolPath = "appimagetool"
+  const appimagetoolPath = "./appimagetool-x86_64.AppImage"
   echo "Checking for appimagetool"
-  if exec(appimagetoolPath, "--help") != 0:
-    # If it doesn't exist
-    appimagetoolPath = "./appimagetool-x86_64.AppImage"
-    if not fileExists(appimagetoolPath):
-      echo &"Dowloading {appimagetoolPath}"
-      exec &"wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetoolPath"
-      exec &"chmod +x {appimagetoolPath}"
+  if exec("appimagetool", "--help") != 0 or not fileExists(appimagetoolPath) or
+      exec(appimagetoolPath, "--help") != 0:
+    echo &"Dowloading {appimagetoolPath}"
+    exec &"wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O {appimagetoolPath}"
+    exec &"chmod +x {appimagetoolPath}"
 
+  var success = -1
   if "ghRepo" in config:
     echo "Building updateable AppImage"
     let ghInfo = config["ghRepo"].getString().split('/')
-    echo &"\"gh-releases-zsync|{ghInfo[0]}|{ghInfo[1]}|latest|{name}-*-{arch}.AppImage.zsync\""
-    exec appimagetoolPath & " -u " &
-      &"\"gh-releases-zsync|{ghInfo[0]}|{ghInfo[1]}|latest|{name}-*-{arch}.AppImage.zsync\"" &
-      " AppDir " & appimagePath
+    success = exec(
+      appimagetoolPath,
+      "-u",
+      &"\"gh-releases-zsync|{ghInfo[0]}|{ghInfo[1]}|latest|{name}-*-{arch}.AppImage.zsync\"",
+      "AppDir",
+      appimagePath,
+    )
   else:
     echo &"ghRepo key not in {configPath}. Skipping updateable AppImage"
-    exec appimagetoolPath & " AppDir " & appimagePath
+    success = exec(appimagetoolPath, "AppDir", appimagePath)
 
-  echo "Success -> ", appimagePath
+  if success == 0:
+    echo "Success -> ", appimagePath
 
 # let winBuild = existsEnv("BUILD") and getEnv("BUILD") == "WIN"
 when defined(Windows):
