@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-22.04 # Oldest ubuntu possible to make the AppImage as compatible as possible
     steps:
       - uses: actions/checkout@v2
-      - uses: iffy/install-nim@v4.1.1
+      - uses: iffy/install-nim@v5
 
       - name: Install x11 dev libraries
         run: sudo apt install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev libfuse2
@@ -28,10 +28,10 @@ jobs:
           if-no-files-found: error
 
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
-      - uses: iffy/install-nim@v4.1.1
+      - uses: iffy/install-nim@v5
 
       - name: Build
         run: |
