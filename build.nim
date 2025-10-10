@@ -40,6 +40,7 @@ proc exec(cmd: varargs[string, `$`]): int {.discardable.} =
 
 proc buildWindows() =
   let outDir = &"{name}-{version}"
+  let outPath = &"{name}-{version}.zip"
 
   createDir outDir
   exec fmt"set FLAGS=""--outdir:{outDir}"" && nimble buildBin"
@@ -48,8 +49,12 @@ proc buildWindows() =
     if kind == pcFile:
       copyFileToDir(path, outDir)
 
-  let outPath = outDir & ".zip"
-  createZipArchive(outDir & "/", outDir)
+  var entries = initTable[string, string]()
+  for kind, path in walkDir(outDir, relative = true):
+    if kind == pcFile:
+      entries[path] = readFile(path)
+
+  writeFile(outPath, createZipArchive(entries))
 
   echo "Success -> ", outPath
 
