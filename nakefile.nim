@@ -63,7 +63,7 @@ proc buildAppImage() =
       "arch",
       arch,
     ]
-  echo desktopContent
+
   writeFile(&"AppDir/{name}.desktop", desktopContent)
   copyFile(config["iconPath"].getString(), "AppDir/.DirIcon")
   copyFile(config["svgIconPath"].getString(), &"AppDir/{name}.svg")
