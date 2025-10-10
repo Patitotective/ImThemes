@@ -6,7 +6,7 @@ on:
 
 jobs:
   appimage:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04 # Oldest ubuntu possible to make the AppImage as compatible as possible
     steps:
       - uses: actions/checkout@v2
       - uses: iffy/install-nim@v4.1.1
