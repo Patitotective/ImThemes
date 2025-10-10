@@ -14,13 +14,13 @@ backend = "cpp"
 requires "nim ^= 2.2.0"
 requires "nimgl ^= 1.3.0"
 requires "downit ^= 0.2.0"
+requires "tinydialogs ^= 1.0.0"
 requires "chroma ^= 0.2.0"
 requires "imstyle ^= 0.3.0"
 requires "niprefs ^= 0.3.0"
 requires "stb_image ^= 2.5"
 requires "zippy ^= 0.10.0"
 requires "toml_serialization ^= 0.2.0"
-requires "tinydialogs ^= 1.1.0"
 
 import std/[strformat, os]
 
