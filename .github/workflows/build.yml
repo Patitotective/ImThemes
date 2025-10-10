@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-22.04 # Oldest ubuntu possible to make the AppImage as compatible as possible
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: iffy/install-nim@v5
       - name: Install x11 dev libraries
         run: sudo apt install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev libfuse2
@@ -20,27 +20,52 @@ jobs:
           nimble install -d -y
           nimble c nakefile.nim
           nake build
-      - name: Upload release binaries
-        uses: alexellis/upload-assets@0.2.2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Get Previous tag
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          asset_paths: '["*-*-*.AppImage", "*-*-*.AppImage.zsync"]'
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: "*-*-*.AppImage"
+          file_glob: true
+          tag: ${{ steps.previoustag.outputs.tag }}
+          overwrite: true
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: "*-*-*.AppImage.zsync"
+          file_glob: true
+          tag: ${{ steps.previoustag.outputs.tag }}
+          overwrite: true
+
   build-win: 
     name: Build and upload amd64 exe
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: iffy/install-nim@v5
       - name: Build exe
         run: |
           nimble install -d -y
           nimble c nakefile.nim
           nake build
-      - name: Upload release binaries
-        uses: alexellis/upload-assets@0.2.2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Get Previous tag
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          asset_paths: '["*.zip"]'
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: "*.zip"
+          file_glob: true
+          tag: ${{ steps.previoustag.outputs.tag }}
+          overwrite: true
+
