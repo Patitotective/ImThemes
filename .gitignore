@@ -1,5 +1,5 @@
 # Ignore files without extension https://stackoverflow.com/a/19023985
- *
+*
 !/**/
 !*.*
 
@@ -9,3 +9,6 @@ htmldocs/
 
 *.exe
 trial.*
+AppDir/
+*.AppImage
+*.zsync
