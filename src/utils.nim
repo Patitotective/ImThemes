@@ -517,7 +517,7 @@ proc color*(vec: ImVec4): Color =
 
 proc initGLFWImage*(data: ImageData): GLFWImage =
   result = GLFWImage(
-    pixels: cast[ptr cuchar](data.image[0].unsafeAddr),
+    pixels: cast[ptr cuchar](data.image[0].unsafeAddr), # Ignore Deprecated warning here
     width: int32 data.width,
     height: int32 data.height,
   )
@@ -611,7 +611,7 @@ proc pushString*(str: var string, val: string) =
 
 proc updatePrefs*(app: var App) =
   # Update the values depending on the preferences here
-  echo "Updating preferences..."
+  discard
 
 proc getCacheDir*(app: App): string =
   getCacheDir(app.config["name"].getString())

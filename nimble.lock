@@ -150,6 +150,26 @@
       "checksums": {
         "sha1": "abf5fd03e72ee4c316c50a0538b973e355dcb175"
       }
+    },
+    "tinydialogs": {
+      "version": "1.1.1",
+      "vcsRevision": "b20fd335b4774dce3fa96d8c115b187314a974a4",
+      "url": "https://github.com/Patitotective/tinydialogs",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "4957dce62fd101a1b28b348555907b4859baf28f"
+      }
+    },
+    "zippy": {
+      "version": "0.10.16",
+      "vcsRevision": "a99f6a7d8a8e3e0213b3cad0daf0ea974bf58e3f",
+      "url": "https://github.com/guzba/zippy",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "da3bb5ea388f980babcc29760348e2899d29a639"
+      }
     }
   },
   "tasks": {}
