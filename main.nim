@@ -12,7 +12,7 @@ when defined(release):
   from resourcesdata import resources
 
 const
-  configPath = currentSourcePath.parentDir() / "config.toml"
+  configPath = "config.toml"
   sidebarViews = [
     FA_PencilSquareO, # Edit view
     FA_Search, # Browse view
