@@ -21,17 +21,16 @@ jobs:
           nimble c nakefile.nim
           nake build
 
-      - name: Get Previous tag
-        id: previoustag
-        uses: "WyriHaximus/github-action-get-previous-tag@v1"
-
+      - uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+        
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: "*-*-*.AppImage"
           file_glob: true
-          tag: ${{ steps.previoustag.outputs.tag }}
+          tag: ${{ steps.get-latest-tag.outputs.tag }}
           overwrite: true
 
       - name: Upload binaries to release
@@ -56,16 +55,15 @@ jobs:
           nimble c nakefile.nim
           nake build
 
-      - name: Get Previous tag
-        id: previoustag
-        uses: "WyriHaximus/github-action-get-previous-tag@v1"
-
+      - uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+        
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: "*.zip"
           file_glob: true
-          tag: ${{ steps.previoustag.outputs.tag }}
+          tag: ${{ steps.get-latest-tag.outputs.tag }}
           overwrite: true
 
