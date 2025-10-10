@@ -2,7 +2,8 @@ import std/[tables, sugar, os]
 import niprefs
 
 const configPath = "config.toml"
-let config {.compileTime.} = Toml.decode(static(slurp(currentSourcePath.parentDir() / configPath)), TomlValueRef)
+let config {.compileTime.} =
+  Toml.decode(static(slurp(currentSourcePath.parentDir() / configPath)), TomlValueRef)
 
 const resourcesPaths = [
   configPath,
