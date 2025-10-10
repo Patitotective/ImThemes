@@ -27,20 +27,20 @@ jobs:
           repository: ${{ github.repository }}  # The repository to scan.
           releases-only: true  # We know that all relevant tags have a GitHub release for them.
     
-      - name: Upload binaries to release
+      - name: Upload AppImage
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: "*.AppImage"
+          file: "ImThemes*.AppImage"
           file_glob: true
           tag: ${{ steps.latest-tag.outputs.tag }}
           overwrite: true
 
-      - name: Upload binaries to release
+      - name: Upload AppImage.zsync
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: "*.AppImage.zsync"
+          file: "*ImThemes.AppImage.zsync"
           file_glob: true
           tag: ${{ steps.latest-tag.outputs.tag }}
           overwrite: true
@@ -64,7 +64,7 @@ jobs:
           repository: ${{ github.repository }}  # The repository to scan.
           releases-only: true  # We know that all relevant tags have a GitHub release for them.
     
-      - name: Upload binaries to release
+      - name: Upload zip
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
