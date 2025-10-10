@@ -11,17 +11,17 @@ backend = "cpp"
 
 # Dependencies
 
-requires "nim ^= 2.2.4"
-requires "nake ^= 1.9.4"
-requires "nimgl ^= 1.3.2"
-requires "downit ^= 0.2.1"
-requires "chroma ^= 0.2.4"
-requires "imstyle ^= 0.3.2"
-requires "niprefs ^= 0.3.4"
-requires "tinydialogs ^= 1.1.0"
+requires "nim ^= 2.2.0"
+requires "nake ^= 1.9.0"
+requires "nimgl ^= 1.3.0"
+requires "downit ^= 0.2.0"
+requires "chroma ^= 0.2.0"
+requires "imstyle ^= 0.3.0"
+requires "niprefs ^= 0.3.0"
 requires "stb_image ^= 2.5"
-requires "zippy ^= 0.10.16"
-requires "toml_serialization ^= 0.2.18"
+requires "zippy ^= 0.10.0"
+requires "toml_serialization ^= 0.2.0"
+requires "tinydialogs ^= 1.1.0"
 
 import std/[strformat, os]
 
@@ -46,3 +46,6 @@ task runBin, "Build and run the application":
   exec "nimble buildBin"
 
   exec fmt"./{outPath}"
+
+requires "tinydialogs >= 1.1.0"
+
