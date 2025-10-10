@@ -18,8 +18,7 @@ jobs:
       - name: Build AppImage
         run: |
           nimble install -d -y
-          nimble c nakefile.nim
-          nake build
+          nimble c -r build.nim
 
       - uses: oprypin/find-latest-tag@v1
         id: latest-tag  # The step ID to refer to later.
@@ -55,8 +54,7 @@ jobs:
       - name: Build exe
         run: |
           nimble install -d -y
-          nimble c nakefile.nim
-          nake build
+          nimble c -r build.nim
 
       - uses: oprypin/find-latest-tag@v1
         id: latest-tag  # The step ID to refer to later.
