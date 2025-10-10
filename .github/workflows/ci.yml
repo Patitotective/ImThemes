@@ -12,7 +12,7 @@ jobs:
       - uses: iffy/install-nim@v4.1.1
 
       - name: Install x11 dev libraries
-        run: sudo apt install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev
+        run: sudo apt install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev libfuse2
 
       - name: Build
         run: |

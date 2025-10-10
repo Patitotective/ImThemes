@@ -12,9 +12,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: iffy/install-nim@v4.1.1
+      - uses: iffy/install-nim@v5
       - name: Install x11 dev libraries
-        run: sudo apt install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev
+        run: sudo apt install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev libfuse2
       - name: Build AppImage
         run: |
           nimble install -d -y
@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: iffy/install-nim@v4.1.1
+      - uses: iffy/install-nim@v5
       - name: Build exe
         run: |
           nimble install -d -y
