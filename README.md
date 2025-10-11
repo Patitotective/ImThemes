@@ -22,7 +22,7 @@ Dear ImGui theme designer and browser written in Nim
 
 Go to the [releases page](https://github.com/Patitotective/ImThemes/releases/latest) and download:
 
-- [ImThemes-0.3.0-x86_64.AppImage](https://github.com/Patitotective/ImThemes/releases/latest/download/ImThemes-0.3.0-x86_64.AppImage) for Linux.
+- [ImThemes-0.3.0-amd64.AppImage](https://github.com/Patitotective/ImThemes/releases/latest/download/ImThemes-0.3.0-amd64.AppImage) for Linux.
 - [ImThemes-0.3.0.zip](https://github.com/Patitotective/ImThemes/releases/latest/download/ImThemes-0.3.0.zip) for Windows.
 
 ### Nimble
