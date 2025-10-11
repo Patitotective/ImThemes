@@ -39,7 +39,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: "*ImThemes.AppImage.zsync"
+          file: "ImThemes*.AppImage.zsync"
           file_glob: true
           tag: ${{ steps.latest-tag.outputs.tag }}
           overwrite: true

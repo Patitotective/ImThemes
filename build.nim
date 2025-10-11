@@ -50,9 +50,9 @@ proc buildWindows() =
       copyFileToDir(path, outDir)
 
   var entries = initTable[string, string]()
-  for kind, path in walkDir(outDir, relative = true):
+  for kind, path in walkDir(outDir):
     if kind == pcFile:
-      entries[path] = readFile(path)
+      entries[path.splitPath().tail] = readFile(path)
 
   writeFile(outPath, createZipArchive(entries))
 
