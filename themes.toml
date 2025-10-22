@@ -5,7 +5,7 @@
 #   author = "Patitotective" # Your github username
 #   description = "Sublime-like theme" # Short description
 #   tags = ["light", "dark", "red", "blue", "green", "yellow", "orange", "purple", "magenta", "pink", "gray", "high-contrast", "rounded"] # These are all the valid tags, check https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color_keywords
-#   date = 2022-03-30 # Publish date. You don't need to add it manually, it will get when the pull request gets merged.
+#   date = 2022-03-30 # Publish date, it will be changed for the PR merge date
 #   [themes.style]
 #     alpha = 1.0 # Float. Global alpha applies to everything in Dear ImGui.
 #     disabledAlpha = 0.6 # Float. Additional alpha multiplier applied by BeginDisabled(). Multiply over current value of Alpha.
