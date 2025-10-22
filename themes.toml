@@ -4208,7 +4208,7 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
   author = "yo-ru"
   description = "Big and Purple"
   tags = ["rounded", "dark", "purple", "pink"]
-  date = "pr-merge-date"
+  date = 2025-10-22
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6
