@@ -4205,7 +4205,7 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
 
 [[themes]]
   name = "Eggplant"
-  author = "github-username"
+  author = "yo-ru"
   description = "Big and Purple"
   tags = ["rounded", "dark", "purple", "pink"]
   date = "pr-merge-date"
