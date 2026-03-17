@@ -4301,7 +4301,7 @@ ModalWindowDimBg = "rgba(0, 0, 0, 0.7982832789421082)"
   description = "Fork of Cherry with more pink color and taller items"
   forkedFrom = "Cherry"
   tags = ["dark", "pink"]
-  date = "pr-merge-date"
+  date = 2026-03-17
   [themes.style]
     alpha = 1.0
     disabledAlpha = 0.6
